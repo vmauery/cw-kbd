@@ -1,0 +1,60 @@
+/*
+ * ex: set syntax=c tabstop=8 noexpandtab shiftwidth=8:
+ *
+ * cw-kbd is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as  published
+ * by the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * cw-kbd is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+ * License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with cw-kbd.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Copyright © 2009-2010, Vernon Mauery (N7OH)
+*/
+
+#ifndef __CW_H__
+#define __CW_H__
+
+#include "util.h"
+
+#define DIT_PORT_LETTER F
+#define DIT_BIT_NUMBER 6
+
+#define DIT_PORT _PORT(CW_PORT_LETTER)
+#define DIT_DDR  _DDR(CW_PORT_LETTER)
+#define DIT_BIT  _BV(CW_BIT_NUMBER)
+
+#define DAH_PORT_LETTER F
+#define DAH_BIT_NUMBER 7
+
+#define DAH_PORT _PORT(CW_PORT_LETTER)
+#define DAH_DDR  _DDR(CW_PORT_LETTER)
+#define DAH_BIT  _BV(CW_BIT_NUMBER)
+
+#define CW_PORT_LETTER D
+#define CW_BIT_NUMBER 6
+
+#define CW_PORT _PORT(CW_PORT_LETTER)
+#define CW_DDR  _DDR(CW_PORT_LETTER)
+#define CW_BIT  _BV(CW_BIT_NUMBER)
+
+#define BEEPER_PORT_LETTER B
+#define BEEPER_BIT_NUMBER 4
+
+#define BEEPER_PORT _PORT(BEEPER_PORT_LETTER)
+#define BEEPER_DDR  _DDR(BEEPER_PORT_LETTER)
+#define BEEPER_BIT  _BV(BEEPER_BIT_NUMBER)
+
+typedef void(*cw_dq_cb_t)(uint8_t);
+void cw_char(char c);
+void cw_string(const char* str);
+void cw_set_speed(uint8_t wpm);
+void cw_init(uint8_t wpm, cw_dq_cb_t cb);
+void cw_set_frequency(uint16_t hz);
+
+#endif

@@ -1,0 +1,15 @@
+tmp/
+doc/
+lufa
+.dep/
+*.o
+*.lst
+*.lss
+*.hex
+*.elf
+*.tmp
+*.eep
+*.map
+*.sym
+.*.swp
+.*.swo
