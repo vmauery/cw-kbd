@@ -16,48 +16,7 @@
  *
  * Copyright © 2009-2010, Vernon Mauery (N7OH)
 */
-
-void itoa(char *buf, int base, int d)
-{
-	char *p = buf;
-	char *p1, *p2;
-	unsigned long ud = d;
-	int divisor = 10;
-
-	/* If %d is specified and D is minus, put `-' in the head.  */
-	if (base == 'd' && d < 0)
-	{
-		*p++ = '-';
-		buf++;
-		ud = -d;
-	}
-	else if (base == 'x')
-		divisor = 16;
-
-	/* Divide UD by DIVISOR until UD == 0.  */
-	do
-	{
-		int remainder = ud % divisor;
-
-		*p++ = (remainder < 10) ? remainder + '0' : remainder + 'a' - 10;
-	}
-	while (ud /= divisor);
-
-	/* Terminate BUF.  */
-	*p = 0;
-
-	/* Reverse BUF.  */
-	p1 = buf;
-	p2 = p - 1;
-	while (p1 < p2)
-	{
-		char tmp = *p1;
-		*p1 = *p2;
-		*p2 = tmp;
-		p1++;
-		p2--;
-	}
-}
+#include <stdlib.h>
 
 /* Format a string */
 int sprintf(char *str, const char *format, ...)
@@ -87,8 +46,15 @@ multiformat:
 			case 'd':
 			case 'u':
 			case 'x':
-				itoa (buf, c, *((int *) arg++));
-				p = buf;
+				if (c == 'b')
+					c = 2;
+				else if (c == 'o')
+					c = 8;
+				else if (c == 'x')
+					c = 16;
+				else
+					c = 10;
+				p = utoa (*((unsigned int *) arg++), buf, c);
 				goto string;
 				break;
 
