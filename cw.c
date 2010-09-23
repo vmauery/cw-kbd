@@ -223,7 +223,7 @@ static const prog_uint8_t cw2ascii[] = {
 
 struct prosign {
 	uint16_t bits;
-	char value[3];
+	char value[4];
 };
 
 static const PROGMEM struct prosign prosigns[] = {
@@ -236,7 +236,8 @@ static const PROGMEM struct prosign prosigns[] = {
 	{ 0b01011010, { 'A', 'C', 0 } }, /* used for @ symbol */
 	{ 0b10000000, { '\b', 0 } }, /* this is the cheater version of error (backspace) */
 	{ 0b10001001, { '$', 0 } },
-	{ 0b100000000, { '\b', 0 } },
+	{ 0b100000000, { '\b', 0 } }, /* 8 dits == mistake */
+	{ 0b1000111000, { 'S', 'O', 'S', 0 } }, /* technically SOS is a prosign */
 };
 
 static const prog_uint8_t cw[] = {
