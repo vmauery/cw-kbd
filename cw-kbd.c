@@ -342,7 +342,7 @@ void CALLBACK_HID_Device_ProcessHIDReport(
 {
 }
 
-static uint16_t freq = 440;
+static uint16_t freq = 220;
 
 /* The plan here is to tag the key presses with timestamps so we
  * can collate the timeline of events into dits, dahs and spaces
@@ -467,7 +467,7 @@ void sw_init(void) {
 }
 
 /* Configures the board hardware and chip peripherals for the demo's functionality. */
-void hw_init()
+void hw_init(void)
 {
 	/* Disable watchdog if enabled by bootloader/fuses */
 	MCUSR &= ~(1 << WDRF);

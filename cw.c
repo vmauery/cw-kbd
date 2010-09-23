@@ -572,12 +572,15 @@ void didah_decode(didah_queue_t next) {
 	switch (next) {
 	case DIT:
 		bits <<= 1;
+		debug("bits = %#x\r\n", bits);
 		break;
 	case DAH:
 		bits <<= 1;
 		bits |= 1;
+		debug("bits = %#x\r\n", bits);
 		break;
 	case SPACE:
+		debug("decoding %#x\r\n", bits);
 		/* find bits in a table */
 		if (bits < 127 && (c = pgm_read_byte(&cw2ascii[bits]))) {
 			if (cw_dq_cb)
@@ -585,9 +588,10 @@ void didah_decode(didah_queue_t next) {
 			debug("decode: %#x -> %d\r\n", bits&0xff, c);
 		} else {
 			uint8_t i, j;
+			debug("prosign: bits = %#b\r\n", bits);
 			for (i=0; i<(sizeof(prosigns)/sizeof(struct prosign)); i++) {
-				debug("decode: bits = %#x, ps.bits = %#x\r\n", bits,
-						pgm_read_word(&prosigns[i].bits));
+				debug("prosign_lookup: %#b\r\n",
+				      pgm_read_word(&prosigns[i].bits));
 				if (bits == pgm_read_word(&prosigns[i].bits)) {
 					j = 0;
 					while ((c = pgm_read_byte(&prosigns[i].value[j]))) {
