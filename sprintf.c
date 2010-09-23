@@ -43,7 +43,17 @@ multiformat:
 				ret++;
 				break;
 
+			case 'i':
 			case 'd':
+				if (*((unsigned int *)arg) < 0) {
+					*str++ = '-';
+					ret++;
+				}
+				p = utoa (abs(*((int *) arg++)), buf, 10);
+				goto string;
+				break;
+			case 'b':
+			case 'o':
 			case 'u':
 			case 'x':
 				if (c == 'b')
