@@ -16,10 +16,12 @@
  *
  * Copyright © 2009-2010, Vernon Mauery (N7OH)
 */
+#include <avr/pgmspace.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /* Format a string */
-int sprintf(char *str, const char *format, ...)
+int sprintf(char *str, PGM_P format, ...)
 {
 	char **arg = (char **) &format;
 	int c;
@@ -29,14 +31,14 @@ int sprintf(char *str, const char *format, ...)
 
 	arg++;
 
-	while ((c = *format++) != 0)
+	while ((c = pgm_read_byte(format++)) != 0)
 	{
 		if (c != '%') {
 			*str++ = c;
 			ret++;
 		} else {
-multiformat:
-			c = *format++;
+altformat:
+			c = pgm_read_byte(format++);
 			switch (c) {
 			case 'c':
 				*str++ = *((int *)arg++);
@@ -82,9 +84,9 @@ string:
 
 			case '#':
 				*str++ = '0';
-				*str++ = 'x';
+				*str++ = pgm_read_byte(format);
 				ret += 2;
-				goto multiformat;
+				goto altformat;
 				break;
 
 			default:

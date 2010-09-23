@@ -53,10 +53,10 @@ void debug_write_byte(const char b);
 extern uint8_t debug_write;
 
 #define debug(A,B...) do { \
-	char msg[64]; \
 	if (debug_write) { \
-		sprintf(msg, A, ##B); \
-		debug_write_bytes(msg); \
+		char _dbg_msg[64]; \
+		sprintf(_dbg_msg, PSTR(A), ##B); \
+		debug_write_bytes(_dbg_msg); \
 	}\
 } while(0)
 
