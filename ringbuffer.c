@@ -49,12 +49,14 @@ uint8_t ringbuffer_pop(struct ringbuffer *rb) {
 	uint8_t out;
 	ringbuffer_dump("pop-pre ", rb);
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-		out = rb->q[rb->out];
-		if (++rb->out == rb->size)
-			rb->out = 0;
-
 		if (rb->count > 0) {
+			out = rb->q[rb->out];
+			if (++rb->out == rb->size)
+				rb->out = 0;
+
 			rb->count--;
+		} else {
+			out = 0xff;
 		}
 	}
 	ringbuffer_dump("pop-post", rb);
@@ -70,6 +72,8 @@ void ringbuffer_push(struct ringbuffer *rb, uint8_t val) {
 
 		if (++rb->count > rb->size) {
 			rb->count = rb->size;
+			if (++rb->out == rb->size)
+				rb->out = 0;
 		}
 	}
 	ringbuffer_dump("push-post", rb);
