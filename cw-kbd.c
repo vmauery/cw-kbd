@@ -305,7 +305,12 @@ static uint8_t hid_dq(char *c) {
 	return 0;
 }
 
-/* This is called periodically to let us report keys if we have any */
+/* This is called periodically to let us report keys if we have any.
+ * We only report one key at a time because the report buffer is a
+ * list of keys currently pressed, not keys to add to the queue.  So
+ * if we want to add a whole bunch of key presses, we add them one
+ * at a time in subsequent HID reports.
+ */
 bool CALLBACK_HID_Device_CreateHIDReport(
 	USB_ClassInfo_HID_Device_t* const iface,
 	uint8_t* const report_id,
@@ -319,7 +324,7 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 	
 	/* report->Modifier = HID_KEYBOARD_MODIFER_LEFTSHIFT; */
 	
-	while (hid_dq((char*)&c)) {
+	if (hid_dq((char*)&c)) {
 		debug("hid_dq() => %d -> %d\r\n", c, pgm_read_byte(&ascii2hid[c]));
 		report->KeyCode[key_count++] = pgm_read_byte(&ascii2hid[c]);
 	}
