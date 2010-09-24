@@ -52,10 +52,12 @@ void debug_write_bytes(const char *msg);
 void debug_write_byte(const char b);
 extern uint8_t debug_write;
 
+int my_snprintf(char *str, uint8_t len, PGM_P format, ...);
+
 #define debug(A,B...) do { \
 	if (debug_write) { \
-		char _dbg_msg[64]; \
-		sprintf(_dbg_msg, PSTR(A), ##B); \
+		char _dbg_msg[100]; \
+		my_snprintf(_dbg_msg, sizeof(_dbg_msg), PSTR(A), ##B); \
 		debug_write_bytes(_dbg_msg); \
 	}\
 } while(0)

@@ -21,7 +21,7 @@
 #include <stdint.h>
 
 /* Format a string */
-int sprintf(char *str, PGM_P format, ...)
+int my_snprintf(char *str, uint8_t len, PGM_P format, ...)
 {
 	char **arg = (char **) &format;
 	int c;
@@ -29,9 +29,10 @@ int sprintf(char *str, PGM_P format, ...)
 	int ret = 0;
 	char *p;
 
+	len--;
 	arg++;
 
-	while ((c = pgm_read_byte(format++)) != 0)
+	while ((c = pgm_read_byte(format++)) != 0 && ret < len)
 	{
 		if (c != '%') {
 			*str++ = c;
@@ -50,6 +51,8 @@ altformat:
 				if (*((uint16_t *)arg) < 0) {
 					*str++ = '-';
 					ret++;
+					if (ret >= len)
+						break;
 				}
 				p = utoa (abs(*((int16_t *) arg++)), buf, 10);
 				goto string;
@@ -76,13 +79,15 @@ altformat:
 					p = "(null)";
 
 string:
-				while (*p) {
+				while (*p && ret < len) {
 					*str++ = *p++;
 					ret++;
 				}
 				break;
 
 			case '#':
+				if (ret+2 > len)
+					goto out;
 				*str++ = '0';
 				*str++ = pgm_read_byte(format);
 				ret += 2;
@@ -96,6 +101,7 @@ string:
 			}
 		}
 	}
+out:
 	*str = 0;
 
 	return ret;
