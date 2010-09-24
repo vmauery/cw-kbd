@@ -41,17 +41,17 @@ altformat:
 			c = pgm_read_byte(format++);
 			switch (c) {
 			case 'c':
-				*str++ = *((int *)arg++);
+				*str++ = *((int16_t *)arg++);
 				ret++;
 				break;
 
 			case 'i':
 			case 'd':
-				if (*((unsigned int *)arg) < 0) {
+				if (*((uint16_t *)arg) < 0) {
 					*str++ = '-';
 					ret++;
 				}
-				p = utoa (abs(*((int *) arg++)), buf, 10);
+				p = utoa (abs(*((int16_t *) arg++)), buf, 10);
 				goto string;
 				break;
 			case 'b':
@@ -66,7 +66,7 @@ altformat:
 					c = 16;
 				else
 					c = 10;
-				p = utoa (*((unsigned int *) arg++), buf, c);
+				p = utoa (*((uint16_t *) arg++), buf, c);
 				goto string;
 				break;
 
@@ -90,7 +90,7 @@ string:
 				break;
 
 			default:
-				*str++ = *((int *)arg++);
+				*str++ = *((char *)arg++);
 				ret++;
 				break;
 			}
