@@ -73,10 +73,23 @@ altformat:
 				goto string;
 				break;
 
+			case 'S':
+				p = (char *)pgm_read_word(*arg++);
+				if (! p) {
+nullstr:
+					p = PSTR("(null)");
+				}
+
+				while (pgm_read_byte(p) && ret < len) {
+					*str++ = pgm_read_byte(p++);
+					ret++;
+				}
+				break;
+
 			case 's':
 				p = *arg++;
 				if (! p)
-					p = "(null)";
+					goto nullstr;
 
 string:
 				while (*p && ret < len) {
