@@ -404,16 +404,38 @@ void cw_string(const char* str) {
 
 enum cw_state {
 		cws_idle = 0,
-		cws_send_bit, // 1
-		cws_dit,      // 2
-		cws_dah,      // 3
-		cws_dah2,     // 4
-		cws_bit_sp,   // 5
-		cws_char_sp,  // 6
-		cws_word_sp,  // 7
-		cws_word_sp2, // 8
-		cws_word_sp3, // 9
+		cws_send_bit,
+		cws_dah,
+		cws_dah2,
+		cws_bit_sp,
+		cws_char_sp,
+		cws_word_sp,
+		cws_word_sp2,
+		cws_word_sp3,
+} __attribute__((packed));
+
+#if DEBUG
+prog_char cw_state_0[] PROGMEM = "cws_idle";
+prog_char cw_state_1[] PROGMEM = "cws_send_bit";
+prog_char cw_state_2[] PROGMEM = "cws_dah";
+prog_char cw_state_3[] PROGMEM = "cws_dah2";
+prog_char cw_state_4[] PROGMEM = "cws_bit_sp";
+prog_char cw_state_5[] PROGMEM = "cws_char_sp";
+prog_char cw_state_6[] PROGMEM = "cws_word_sp";
+prog_char cw_state_7[] PROGMEM = "cws_word_sp2";
+prog_char cw_state_8[] PROGMEM = "cws_word_sp3";
+prog_char *cw_state_s[] PROGMEM = {
+	cw_state_0,
+	cw_state_1,
+	cw_state_2,
+	cw_state_3,
+	cw_state_4,
+	cw_state_5,
+	cw_state_6,
+	cw_state_7,
+	cw_state_8,
 };
+#endif /* DEBUG */
 
 static void cw_out_advance_tick(void) {
 	// state machine
@@ -425,7 +447,7 @@ static void cw_out_advance_tick(void) {
 #ifdef DEBUG
 	static enum cw_state lstate = cws_send_bit;
 	if (lstate != state)
-		debug("cw_out: state %d\r\n", state);
+		debug("cw_out: state %S\r\n", &cw_state_s[state]);
 	lstate = state;
 #endif /* DEBUG */
 
@@ -472,7 +494,7 @@ static void cw_out_advance_tick(void) {
 			if (didah_dequeue(&didah)) {
 				switch (didah) {
 				case DIT:
-					state = cws_dit;
+					state = cws_bit_sp;
 					cw_led_on();
 					p = '*';
 					break;
@@ -491,12 +513,6 @@ static void cw_out_advance_tick(void) {
 				state = cws_char_sp;
 				p = ',';
 			}
-			break;
-
-		case cws_dit:
-			// turn off the bit
-			cw_led_off();
-			state = cws_send_bit;
 			break;
 
 		case cws_dah: p = '@'; state = cws_dah2; break;
@@ -533,7 +549,7 @@ enum keying_state {
 	keying_left_ready,     /* waiting for N ticks before enqueueing next didah */
 	keying_right_ready,    /* waiting for N ticks before enqueueing next didah */
 	keying_both_ready,     /* waiting for N ticks before enqueueing next didah */
-};
+} __attribute__((packed));
 
 enum keying_transition_events {
 	keying_x_tick = 1,
@@ -541,7 +557,42 @@ enum keying_transition_events {
 	keying_x_left_key_release,
 	keying_x_right_key_press,
 	keying_x_right_key_release,
+} __attribute__((packed));
+
+#if DEBUG
+prog_char key_state_0[] PROGMEM = "keying_idle";
+prog_char key_state_1[] PROGMEM = "keying_left_press";
+prog_char key_state_2[] PROGMEM = "keying_right_press";
+prog_char key_state_3[] PROGMEM = "keying_both_press";
+prog_char key_state_4[] PROGMEM = "keying_left_ready";
+prog_char key_state_5[] PROGMEM = "keying_right_ready";
+prog_char key_state_6[] PROGMEM = "keying_both_ready";
+prog_char *keying_state_s[] PROGMEM = {
+	key_state_0,
+	key_state_1,
+	key_state_2,
+	key_state_3,
+	key_state_4,
+	key_state_5,
+	key_state_6,
 };
+
+prog_char key_evt_0[] PROGMEM = "keying_x_no_event";
+prog_char key_evt_1[] PROGMEM = "keying_x_tick";
+prog_char key_evt_2[] PROGMEM = "keying_x_left_key_press";
+prog_char key_evt_3[] PROGMEM = "keying_x_left_key_release";
+prog_char key_evt_4[] PROGMEM = "keying_x_right_key_press";
+prog_char key_evt_5[] PROGMEM = "keying_x_right_key_release";
+prog_char *keying_transition_events_s[] PROGMEM = {
+	key_evt_0,
+	key_evt_1,
+	key_evt_2,
+	key_evt_3,
+	key_evt_4,
+	key_evt_5,
+};
+
+#endif /* DEBUG */
 
 #define DIDAH_Q_LEN 16
 DECLARE_RINGBUFFER(cw_didah_q, DIDAH_Q_LEN);
@@ -622,11 +673,19 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 	static didah_queue_t last_keyed = 0;
 	static uint8_t enqueued_spaces = 0;
 	enum keying_state nstate;
+#ifdef DEBUG
+	static enum keying_state lstate = keying_both_press;
+#endif
 
 	uint8_t iv = rcli();
 	nstate = cstate;
 
-	//debug("run_state_machine %s: %s\n", keying_s_str[cstate], keying_x_str[event]);
+#ifdef DEBUG
+	if (lstate != cstate || event != keying_x_tick)
+		debug("cw_in: state %S (%S)\r\n", &keying_state_s[cstate], &keying_transition_events_s[event]);
+	lstate = cstate;
+#endif /* DEBUG */
+
 	/* figure out what happened to get us here */
 	switch (cstate) {
 	case keying_idle:
