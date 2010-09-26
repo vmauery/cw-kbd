@@ -543,12 +543,9 @@ static void cw_out_advance_tick(void) {
 
 enum keying_state {
 	keying_idle,
-	keying_left_press,     /* enqueue the initial press */
-	keying_right_press,    /* enqueue the initial press */
-	keying_both_press,     /* enqueue the initial press (of whichever is more recent) */
-	keying_left_ready,     /* waiting for N ticks before enqueueing next didah */
-	keying_right_ready,    /* waiting for N ticks before enqueueing next didah */
-	keying_both_ready,     /* waiting for N ticks before enqueueing next didah */
+	keying_left_press,     /* enqueue left didahs per left didah cycle */
+	keying_right_press,    /* enqueue right didahs per right didah cycle */
+	keying_both_press,     /* enqueue didahs per last pressed didah cycle */
 } __attribute__((packed));
 
 enum keying_transition_events {
@@ -564,17 +561,11 @@ prog_char key_state_0[] PROGMEM = "keying_idle";
 prog_char key_state_1[] PROGMEM = "keying_left_press";
 prog_char key_state_2[] PROGMEM = "keying_right_press";
 prog_char key_state_3[] PROGMEM = "keying_both_press";
-prog_char key_state_4[] PROGMEM = "keying_left_ready";
-prog_char key_state_5[] PROGMEM = "keying_right_ready";
-prog_char key_state_6[] PROGMEM = "keying_both_ready";
 prog_char *keying_state_s[] PROGMEM = {
 	key_state_0,
 	key_state_1,
 	key_state_2,
 	key_state_3,
-	key_state_4,
-	key_state_5,
-	key_state_6,
 };
 
 prog_char key_evt_0[] PROGMEM = "keying_x_no_event";
@@ -665,12 +656,12 @@ void didah_decode(didah_queue_t next) {
 #define initial_dit_len 96
 uint16_t didah_len[2];
 
-static didah_queue_t left_didah = DIT;
+static didah_queue_t left_didah = DAH;
 #define right_didah ((left_didah+1)&0x01)
 static void cw_in_advance_tick(enum keying_transition_events event) {
 	static enum keying_state cstate = keying_idle;
-	static uint16_t keyed_ticks[] = { 0, 0, 0, };
-	static didah_queue_t last_keyed = 0;
+	static int16_t keyed_ticks[3];
+	static didah_queue_t last_keyed;
 	static uint8_t enqueued_spaces = 0;
 	enum keying_state nstate;
 #ifdef DEBUG
@@ -702,15 +693,15 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			}
 			break;
 		case keying_x_left_key_press:
-			didah_enqueue(left_didah);
 			nstate = keying_left_press;
+			keyed_ticks[left_didah] = didah_len[left_didah];
 			break;
 		case keying_x_left_key_release:
 			debug("BAD!!! keying_x_left_key_release in idle\r\n");
 			break;
 		case keying_x_right_key_press:
-			didah_enqueue(right_didah);
 			nstate = keying_right_press;
+			keyed_ticks[right_didah] = didah_len[right_didah];
 			break;
 		case keying_x_right_key_release:
 			debug("BAD!!! keying_x_right_key_release in idle\r\n");
@@ -718,43 +709,47 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		}
 		break;
 	case keying_left_press:
-		/* if we have a right key press, enqueue and go to keying_both_press */
+		/* if we have a right key press go to keying_both_press */
 		/* if we have a key release, go back to idle */
-		/* if we have a tick, go to keying_left_ready */
+		/* if we have a tick, stay and enqueue left didahs */
 		switch (event) {
 		case keying_x_tick:
-				nstate = keying_left_ready;
-				keyed_ticks[left_didah] = 1; // we have already seen one partial tick by now
-				break;
+			if (keyed_ticks[left_didah]++ == didah_len[left_didah]) {
+				keyed_ticks[left_didah] = 0;
+				didah_enqueue(left_didah);
+			}
+			break;
 		case keying_x_left_key_press:
-				debug("BAD!!! keying_x_left_key_release in keying_left_press\r\n");
-				break;
+			debug("BAD!!! keying_x_left_key_release in keying_left_press\r\n");
+			break;
 		case keying_x_left_key_release:
-				nstate = keying_idle;
-				enqueued_spaces = 0;
-				keyed_ticks[SPACE] = 0;
-				break;
+			nstate = keying_idle;
+			enqueued_spaces = 0;
+			keyed_ticks[SPACE] = 0;
+			break;
 		case keying_x_right_key_press:
-				didah_enqueue(right_didah);
-				nstate = keying_both_press;
-				last_keyed = right_didah;
-				break;
+			keyed_ticks[right_didah] = didah_len[right_didah];
+			nstate = keying_both_press;
+			last_keyed = right_didah;
+			break;
 		case keying_x_right_key_release:
-				debug("BAD!!! keying_x_right_key_release in keying_left_press\r\n");
-				break;
+			debug("BAD!!! keying_x_right_key_release in keying_left_press\r\n");
+			break;
 		}
 		break;
 	case keying_right_press:
-		/* if we have a left key press, enqueue and go to keying_both_press */
+		/* if we have a left key press, go to keying_both_press */
 		/* if we have a key release, go back to idle */
-		/* if we have a tick, go to keying_right_ready */
+		/* if we have a tick, stay and enqueue right didahs */
 		switch (event) {
 		case keying_x_tick:
-			nstate = keying_right_ready;
-			keyed_ticks[right_didah] = 1; // we have already seen one partial tick by now
+			if (keyed_ticks[right_didah]++ == didah_len[right_didah]) {
+				keyed_ticks[right_didah] = 0;
+				didah_enqueue(right_didah);
+			}
 			break;
 		case keying_x_left_key_press:
-			didah_enqueue(left_didah);
+			keyed_ticks[left_didah] = didah_len[left_didah];
 			nstate = keying_both_press;
 			last_keyed = left_didah;
 			break;
@@ -772,90 +767,11 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		}
 		break;
 	case keying_both_press:
-		/* if we have a key release, go to keying_*_press */
-		/* if we have a tick, move on to keying_both_ready */
-		switch (event) {
-		case keying_x_tick:
-			nstate = keying_both_ready;
-			break;
-		case keying_x_left_key_press:
-			debug("BAD!!! keying_x_left_key_release in keying_both_press\r\n");
-			break;
-		case keying_x_left_key_release:
-			nstate = keying_right_press;
-			break;
-		case keying_x_right_key_press:
-			debug("BAD!!! keying_x_right_key_release in keying_both_press\r\n");
-			break;
-		case keying_x_right_key_release:
-			nstate = keying_left_press;
-			break;
-		}
-		break;
-	case keying_left_ready:
 		/* if we have N ticks, move on to enqueue and continue */
-		/* if we have a key press, enqueue and move to keying_both_press */
-		/* if we have a key release, go back to idle */
+		/* if we have a key release, go back to keying_*_press */
 		switch (event) {
 		case keying_x_tick:
-			if (++keyed_ticks[left_didah] == didah_len[left_didah]) {
-				keyed_ticks[left_didah] = 0;
-				didah_enqueue(left_didah);
-			}
-			break;
-		case keying_x_left_key_press:
-			debug("BAD!!! keying_x_left_key_press in keying_left_ready\r\n");
-			break;
-		case keying_x_left_key_release:
-			nstate = keying_idle;
-			enqueued_spaces = 0;
-			keyed_ticks[SPACE] = 0;
-			break;
-		case keying_x_right_key_press:
-			nstate = keying_both_press;
-			last_keyed = right_didah;
-			didah_enqueue(right_didah);
-			break;
-		case keying_x_right_key_release:
-			debug("BAD!!! keying_x_right_key_press in keying_left_ready\r\n");
-			break;
-		}
-		break;
-	case keying_right_ready:
-		/* if we have N ticks, move on to enqueue and continue */
-		/* if we have a key press, enqueue and move to keying_both_press */
-		/* if we have a key release, go back to idle */
-		switch (event) {
-		case keying_x_tick:
-			if (++keyed_ticks[right_didah] == didah_len[right_didah]) {
-				keyed_ticks[right_didah] = 0;
-				didah_enqueue(right_didah);
-			}
-			break;
-		case keying_x_left_key_press:
-			nstate = keying_both_press;
-			last_keyed = left_didah;
-			didah_enqueue(left_didah);
-			break;
-		case keying_x_left_key_release:
-			debug("BAD!!! keying_x_left_key_release in keying_right_ready\r\n");
-			break;
-		case keying_x_right_key_press:
-			debug("BAD!!! keying_x_right_key_release in keying_right_ready\r\n");
-			break;
-		case keying_x_right_key_release:
-			nstate = keying_idle;
-			enqueued_spaces = 0;
-			keyed_ticks[SPACE] = 0;
-			break;
-		}
-		break;
-	case keying_both_ready:
-		/* if we have N ticks, move on to enqueue and continue */
-		/* if we have a key release, go back to keying_*_ready */
-		switch (event) {
-		case keying_x_tick:
-			if (++keyed_ticks[last_keyed] == didah_len[last_keyed]) {
+			if (keyed_ticks[last_keyed]++ == didah_len[last_keyed]) {
 				keyed_ticks[last_keyed] = 0;
 				didah_enqueue(last_keyed);
 			}
@@ -865,14 +781,14 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			break;
 		case keying_x_left_key_release:
 			keyed_ticks[right_didah] = didah_len[right_didah] - MIN(didah_len[right_didah],didah_len[left_didah])/2;
-			nstate = keying_right_ready;
+			nstate = keying_right_press;
 			break;
 		case keying_x_right_key_press:
 			debug("BAD!!! keying_x_right_key_press in keying_both_ready\r\n");
 			break;
 		case keying_x_right_key_release:
 			keyed_ticks[left_didah] = didah_len[left_didah] - MIN(didah_len[right_didah],didah_len[left_didah])/2;
-			nstate = keying_left_ready;
+			nstate = keying_left_press;
 			break;
 		}
 		break;
