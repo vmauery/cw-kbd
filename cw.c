@@ -403,7 +403,8 @@ void cw_string(const char* str) {
 }
 
 enum cw_state {
-		cws_idle = 0,
+		cws_hyper = 0,
+		cws_idle,
 		cws_send_bit,
 		cws_dah,
 		cws_dah2,
@@ -415,15 +416,16 @@ enum cw_state {
 } __attribute__((packed));
 
 #if DEBUG
-prog_char cw_state_0[] PROGMEM = "cws_idle";
-prog_char cw_state_1[] PROGMEM = "cws_send_bit";
-prog_char cw_state_2[] PROGMEM = "cws_dah";
-prog_char cw_state_3[] PROGMEM = "cws_dah2";
-prog_char cw_state_4[] PROGMEM = "cws_bit_sp";
-prog_char cw_state_5[] PROGMEM = "cws_char_sp";
-prog_char cw_state_6[] PROGMEM = "cws_word_sp";
-prog_char cw_state_7[] PROGMEM = "cws_word_sp2";
-prog_char cw_state_8[] PROGMEM = "cws_word_sp3";
+prog_char cw_state_0[] PROGMEM = "cws_hyper";
+prog_char cw_state_1[] PROGMEM = "cws_idle";
+prog_char cw_state_2[] PROGMEM = "cws_send_bit";
+prog_char cw_state_3[] PROGMEM = "cws_dah";
+prog_char cw_state_4[] PROGMEM = "cws_dah2";
+prog_char cw_state_5[] PROGMEM = "cws_bit_sp";
+prog_char cw_state_6[] PROGMEM = "cws_char_sp";
+prog_char cw_state_7[] PROGMEM = "cws_word_sp";
+prog_char cw_state_8[] PROGMEM = "cws_word_sp2";
+prog_char cw_state_9[] PROGMEM = "cws_word_sp3";
 prog_char *cw_state_s[] PROGMEM = {
 	cw_state_0,
 	cw_state_1,
@@ -434,8 +436,20 @@ prog_char *cw_state_s[] PROGMEM = {
 	cw_state_6,
 	cw_state_7,
 	cw_state_8,
+	cw_state_9,
 };
 #endif /* DEBUG */
+
+static void cw_out_advance_tick(void);
+static void cw_out_normal_tick(void) {
+	/* return to normal speed */
+	ms_tick_register(cw_out_advance_tick, TICK_CW_ADVANCE, dit_len);
+}
+
+static void cw_out_hyper_tick(void) {
+	/* return to normal speed */
+	ms_tick_register(cw_out_advance_tick, TICK_CW_ADVANCE, 1);
+}
 
 static void cw_out_advance_tick(void) {
 	// state machine
@@ -451,9 +465,14 @@ static void cw_out_advance_tick(void) {
 #endif /* DEBUG */
 
 	switch (state) {
+		case cws_hyper:
+			cw_out_hyper_tick();
+			state = cws_idle;
+			break;
 		case cws_idle:
 			if (didah_dequeue(NULL)) {
 				debug("have didahs to dequeue\r\n");
+				cw_out_normal_tick();
 				state = cws_send_bit;
 				return cw_out_advance_tick();
 			}
@@ -481,9 +500,8 @@ static void cw_out_advance_tick(void) {
 				}
 				didah_enqueue(SPACE);
 				state = cws_send_bit;
+				cw_out_normal_tick();
 				return cw_out_advance_tick();
-			} else {
-				// turn off the timer
 			}
 			break;
 
@@ -505,7 +523,8 @@ static void cw_out_advance_tick(void) {
 					break;
 				}
 			} else {
-				state = cws_idle;
+				state = cws_hyper;
+				return cw_out_advance_tick();
 			}
 			break;
 
@@ -518,14 +537,11 @@ static void cw_out_advance_tick(void) {
 			state = cws_send_bit;
 			break;
 
-		case cws_char_sp:
-			state = cws_idle;
-			break;
+		case cws_char_sp: state = cws_hyper; break;
 
 		case cws_word_sp: state = cws_word_sp2; break;
 		case cws_word_sp2: state = cws_word_sp3; break;
-		case cws_word_sp3: state = cws_idle; break;
-
+		case cws_word_sp3: state = cws_hyper; break;
 	}
 }
 
@@ -814,7 +830,7 @@ void cw_set_speed(uint8_t wpm) {
 	dit_len = 1200 / wpm;
 	didah_len[0] = 2*(uint16_t)dit_len;
 	didah_len[1] = 4*(uint16_t)dit_len;
-	ms_tick_register(cw_out_advance_tick, TICK_CW_ADVANCE, dit_len);
+	cw_out_normal_tick();
 }
 
 void toggle_bit(void) {
