@@ -30,7 +30,7 @@
 
 static uint8_t wpm = 20;
 
-static uint8_t hid_nq(char c);
+static uint8_t hid_nq(uint8_t c);
 
 enum paddle_mode_t {
 	paddle_mode_bug = 0,
@@ -175,17 +175,17 @@ static const prog_uint8_t ascii2hid[] = {
 	/* 1e */  0,     /*  */
 	/* 1f */  0,     /*  */
 	/* 20 */  0x2c,  /* ' ' */
-	/* 21 */  0x1e,  /* '!' */
-	/* 22 */  0x34,  /* '"' */
+	/* 21 */  0x1e | 0x80,  /* '!' */
+	/* 22 */  0x34 | 0x80,  /* '"' */
 	/* 23 */  0,     /* '#' */
-	/* 24 */  0x21,  /* '$' */
+	/* 24 */  0x21 | 0x80,  /* '$' */
 	/* 25 */  0,     /* '%' */
 	/* 26 */  0,     /* '&' */
 	/* 27 */  0,     /* '´' */
-	/* 28 */  0x26,  /* '(' */
-	/* 29 */  0x27,  /* ')' */
+	/* 28 */  0x26 | 0x80,  /* '(' */
+	/* 29 */  0x27 | 0x80,  /* ')' */
 	/* 2a */  0,     /* '*' */
-	/* 2b */  0x2e,  /* '+' */
+	/* 2b */  0x2e | 0x80,  /* '+' */
 	/* 2c */  0x36,  /* ',' */
 	/* 2d */  0x2d,  /* '-' */
 	/* 2e */  0x37,  /* '.' */
@@ -200,44 +200,44 @@ static const prog_uint8_t ascii2hid[] = {
 	/* 37 */  0x24,  /* '7' */
 	/* 38 */  0x25,  /* '8' */
 	/* 39 */  0x26,  /* '9' */
-	/* 3a */  0x13,  /* ':' */
+	/* 3a */  0x13 | 0x80,  /* ':' */
 	/* 3b */  0x13,  /* ';' */
 	/* 3c */  0,     /* '<' */
 	/* 3d */  0x2e,  /* '=' */
 	/* 3e */  0,     /* '>' */
-	/* 3f */  0x38,  /* '?' */
+	/* 3f */  0x38 | 0x80,  /* '?' */
 	/* 40 */  0,     /* '@' */
-	/* 41 */  0x04,  /* 'A' */
-	/* 42 */  0x05,  /* 'B' */
-	/* 43 */  0x06,  /* 'C' */
-	/* 44 */  0x0a,  /* 'D' */
-	/* 45 */  0x0e,  /* 'E' */
-	/* 46 */  0x08,  /* 'F' */
-	/* 47 */  0x17,  /* 'G' */
-	/* 48 */  0x0b,  /* 'H' */
-	/* 49 */  0x0f,  /* 'I' */
-	/* 4a */  0x1c,  /* 'J' */
-	/* 4b */  0x11,  /* 'K' */
-	/* 4c */  0x18,  /* 'L' */
-	/* 4d */  0x10,  /* 'M' */
-	/* 4e */  0x0d,  /* 'N' */
-	/* 4f */  0x33,  /* 'O' */
-	/* 50 */  0x15,  /* 'P' */
-	/* 51 */  0x14,  /* 'Q' */
-	/* 52 */  0x16,  /* 'R' */
-	/* 53 */  0x07,  /* 'S' */
-	/* 54 */  0x09,  /* 'T' */
-	/* 55 */  0x0c,  /* 'U' */
-	/* 56 */  0x19,  /* 'V' */
-	/* 57 */  0x1a,  /* 'W' */
-	/* 58 */  0x1b,  /* 'X' */
-	/* 59 */  0x12,  /* 'Y' */
-	/* 5a */  0x1d,  /* 'Z' */
+	/* 41 */  0x04 | 0x80,  /* 'A' */
+	/* 42 */  0x05 | 0x80,  /* 'B' */
+	/* 43 */  0x06 | 0x80,  /* 'C' */
+	/* 44 */  0x0a | 0x80,  /* 'D' */
+	/* 45 */  0x0e | 0x80,  /* 'E' */
+	/* 46 */  0x08 | 0x80,  /* 'F' */
+	/* 47 */  0x17 | 0x80,  /* 'G' */
+	/* 48 */  0x0b | 0x80,  /* 'H' */
+	/* 49 */  0x0f | 0x80,  /* 'I' */
+	/* 4a */  0x1c | 0x80,  /* 'J' */
+	/* 4b */  0x11 | 0x80,  /* 'K' */
+	/* 4c */  0x18 | 0x80,  /* 'L' */
+	/* 4d */  0x10 | 0x80,  /* 'M' */
+	/* 4e */  0x0d | 0x80,  /* 'N' */
+	/* 4f */  0x33 | 0x80,  /* 'O' */
+	/* 50 */  0x15 | 0x80,  /* 'P' */
+	/* 51 */  0x14 | 0x80,  /* 'Q' */
+	/* 52 */  0x16 | 0x80,  /* 'R' */
+	/* 53 */  0x07 | 0x80,  /* 'S' */
+	/* 54 */  0x09 | 0x80,  /* 'T' */
+	/* 55 */  0x0c | 0x80,  /* 'U' */
+	/* 56 */  0x19 | 0x80,  /* 'V' */
+	/* 57 */  0x1a | 0x80,  /* 'W' */
+	/* 58 */  0x1b | 0x80,  /* 'X' */
+	/* 59 */  0x12 | 0x80,  /* 'Y' */
+	/* 5a */  0x1d | 0x80,  /* 'Z' */
 	/* 5b */  0,     /* '[' */
 	/* 5c */  0,     /* '\' */
 	/* 5d */  0,     /* ']' */
 	/* 5e */  0,     /* '^' */
-	/* 5f */  0x2d,  /* '_' */
+	/* 5f */  0x2d | 0x80,  /* '_' */
 	/* 60 */  0x34,  /* '`' */
 	/* 61 */  0x04,  /* 'a' */
 	/* 62 */  0x05,  /* 'b' */
@@ -277,7 +277,7 @@ static const prog_uint8_t ascii2hid[] = {
 #define QMASK (QLEN-1)
 
 struct q {
-	char q[QLEN];
+	uint8_t q[QLEN];
 	uint8_t r; // reader pos
 	uint8_t w; // writer pos
 	uint8_t c; // count
@@ -285,7 +285,7 @@ struct q {
 
 static struct q q;
 
-static uint8_t hid_nq(char c) {
+static uint8_t hid_nq(uint8_t c) {
 	debug("hid_nq(%d)\r\n", c);
 	if (q.c < QLEN) {
 		q.c++;
@@ -295,7 +295,7 @@ static uint8_t hid_nq(char c) {
 	}
 	return 0;
 }
-static uint8_t hid_dq(char *c) {
+static uint8_t hid_dq(uint8_t *c) {
 	if (q.c > 0) {
 		*c = q.q[q.r];
 		q.r = (q.r+1) & QMASK;
@@ -324,9 +324,15 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 	
 	/* report->Modifier = HID_KEYBOARD_MODIFER_LEFTSHIFT; */
 	
-	if (hid_dq((char*)&c)) {
-		debug("hid_dq() => %d -> %d\r\n", c, pgm_read_byte(&ascii2hid[c]));
-		report->KeyCode[key_count++] = pgm_read_byte(&ascii2hid[c]);
+	if (hid_dq(&c)) {
+		uint8_t v = pgm_read_byte(&ascii2hid[c]);
+		debug("hid_dq() => %#x -> %#x\r\n", c, v);
+		if (v & 0x80) {
+			report->Modifier = HID_KEYBOARD_MODIFER_LEFTSHIFT;
+			v &= 0x7f;
+		} else
+			report->Modifier = 0;
+		report->KeyCode[key_count++] = v;
 	}
 
 	*report_size = sizeof(USB_KeyboardReport_Data_t);
