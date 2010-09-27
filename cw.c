@@ -510,7 +510,7 @@ static void cw_out_advance_tick(void) {
 					break;
 				}
 			} else {
-				state = cws_char_sp;
+				state = cws_idle;
 				p = ',';
 			}
 			break;
@@ -780,14 +780,14 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			debug("BAD!!! keying_x_left_key_press in keying_both_ready\r\n");
 			break;
 		case keying_x_left_key_release:
-			keyed_ticks[right_didah] = didah_len[right_didah] - MIN(didah_len[right_didah],didah_len[left_didah])/2;
+			keyed_ticks[right_didah] = didah_len[right_didah] - didah_len[DIT];
 			nstate = keying_right_press;
 			break;
 		case keying_x_right_key_press:
 			debug("BAD!!! keying_x_right_key_press in keying_both_ready\r\n");
 			break;
 		case keying_x_right_key_release:
-			keyed_ticks[left_didah] = didah_len[left_didah] - MIN(didah_len[right_didah],didah_len[left_didah])/2;
+			keyed_ticks[left_didah] = didah_len[left_didah] - didah_len[DIT];
 			nstate = keying_left_press;
 			break;
 		}
