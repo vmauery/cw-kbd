@@ -627,8 +627,12 @@ void didah_decode(didah_queue_t next) {
 		break;
 	case SPACE:
 		debug("decoding %#x\r\n", bits);
+		if (bits == 0x01) {
+			if (cw_dq_cb)
+				cw_dq_cb(' ');
+			debug("decode: space\r\n");
 		/* find bits in a table */
-		if (bits < 127 && (c = pgm_read_byte(&cw2ascii[bits]))) {
+		} else if (bits < 127 && (c = pgm_read_byte(&cw2ascii[bits]))) {
 			if (cw_dq_cb)
 				cw_dq_cb(c);
 			debug("decode: %#x -> %d\r\n", bits&0xff, c);
