@@ -295,12 +295,20 @@ static uint8_t hid_nq(uint8_t c) {
 	}
 	return 0;
 }
-static uint8_t hid_dq(uint8_t *c) {
+static uint8_t hid_dq(void) {
+	uint8_t c;
 	if (q.c > 0) {
-		*c = q.q[q.r];
+		c = q.q[q.r];
 		q.r = (q.r+1) & QMASK;
 		q.c--;
-		return 1;
+		return c;
+	}
+	return 0;
+}
+
+static uint8_t hid_peek(void) {
+	if (q.c > 0) {
+		return q.q[q.r];
 	}
 	return 0;
 }
@@ -318,14 +326,18 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 	void* report_data,
 	uint16_t* report_size)
 {
+	static uint8_t last_key = 0;
 	USB_KeyboardReport_Data_t* report = (USB_KeyboardReport_Data_t*)report_data;
 	uint8_t key_count = 0;
 	uint8_t c;
 	
 	/* report->Modifier = HID_KEYBOARD_MODIFER_LEFTSHIFT; */
 	
-	if (hid_dq(&c)) {
-		uint8_t v = pgm_read_byte(&ascii2hid[c]);
+	c = hid_peek();
+	if (c && (last_key != c)) {
+		uint8_t v;
+		last_key = c = hid_dq();
+		v = pgm_read_byte(&ascii2hid[c]);
 		debug("hid_dq() => %#x -> %#x\r\n", c, v);
 		if (v & 0x80) {
 			report->Modifier = HID_KEYBOARD_MODIFER_LEFTSHIFT;
@@ -333,7 +345,8 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 		} else
 			report->Modifier = 0;
 		report->KeyCode[key_count++] = v;
-	}
+	} else
+		last_key = 0;
 
 	*report_size = sizeof(USB_KeyboardReport_Data_t);
 	return key_count != 0;
