@@ -56,7 +56,7 @@ int16_t delta_millis(uint16_t latter, uint16_t former) {
 static struct tick_event tick_q[TICK_EVENTS];
 void ms_tick_register(tick_callback_t work, enum tick_events prio, uint16_t freq) {
 	tick_q[prio].freq = freq;
-	tick_q[prio].next_fire = get_millis() + freq;
+	tick_q[prio].next_fire = millis + freq;
 	tick_q[prio].func = work;
 }
 
