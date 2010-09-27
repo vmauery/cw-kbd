@@ -442,7 +442,6 @@ static void cw_out_advance_tick(void) {
 	static enum cw_state state = cws_idle;
 	static uint8_t byte, bit, orig_byte;
 	didah_queue_t didah;
-	char p = '.';
 
 #ifdef DEBUG
 	static enum cw_state lstate = cws_send_bit;
@@ -464,7 +463,6 @@ static void cw_out_advance_tick(void) {
 				orig_byte = byte;
 				if (byte == 32) {
 					state = cws_word_sp;
-					p = ' ';
 					break;
 				}
 				byte = pgm_read_byte(&cw[byte]);
@@ -486,7 +484,6 @@ static void cw_out_advance_tick(void) {
 				return cw_out_advance_tick();
 			} else {
 				// turn off the timer
-				p = '\0';
 			}
 			break;
 
@@ -496,13 +493,11 @@ static void cw_out_advance_tick(void) {
 				case DIT:
 					state = cws_bit_sp;
 					cw_led_on();
-					p = '*';
 					break;
 
 				case DAH:
 					state = cws_dah;
 					cw_led_on();
-					p = '@';
 					break;
 
 				case SPACE:
@@ -511,15 +506,11 @@ static void cw_out_advance_tick(void) {
 				}
 			} else {
 				state = cws_idle;
-				p = ',';
 			}
 			break;
 
-		case cws_dah: p = '@'; state = cws_dah2; break;
-		case cws_dah2:
-			p = '@';
-			state = cws_bit_sp;
-			break;
+		case cws_dah: state = cws_dah2; break;
+		case cws_dah2: state = cws_bit_sp; break;
 
 		case cws_bit_sp:
 			// turn off the bit
@@ -533,12 +524,9 @@ static void cw_out_advance_tick(void) {
 
 		case cws_word_sp: state = cws_word_sp2; break;
 		case cws_word_sp2: state = cws_word_sp3; break;
-		case cws_word_sp3:
-			state = cws_idle;
-			break;
+		case cws_word_sp3: state = cws_idle; break;
 
 	}
-	debug_byte(p);
 }
 
 enum keying_state {
