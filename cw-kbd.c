@@ -23,6 +23,7 @@
 #include <avr/wdt.h>
 #include "util.h"
 
+#include "ringbuffer.h"
 #include "cw-kbd.h"
 #include "cw.h"
 #include "timer.h"
@@ -30,7 +31,7 @@
 
 static uint8_t wpm = 20;
 
-static uint8_t hid_nq(uint8_t c);
+static void hid_nq(uint8_t c);
 
 enum paddle_mode_t {
 	paddle_mode_bug = 0,
@@ -272,46 +273,20 @@ static const prog_uint8_t ascii2hid[] = {
 	/* 7f */  0,     /* DEL */
 };
 
-/* define the queue length (must be a power of two) */
-#define QLEN 128
-#define QMASK (QLEN-1)
-
-struct q {
-	uint8_t q[QLEN];
-	uint8_t r; // reader pos
-	uint8_t w; // writer pos
-	uint8_t c; // count
-};
-
-static struct q q;
-
-static uint8_t hid_nq(uint8_t c) {
+DECLARE_RINGBUFFER(hid_q, 128);
+static void hid_nq(uint8_t c) {
 	debug("hid_nq(%d)\r\n", c);
-	if (q.c < QLEN) {
-		q.c++;
-		q.q[q.w] = c;
-		q.w = (q.w+1) & QMASK;
-		return 1;
-	}
-	return 0;
-}
-static uint8_t hid_dq(void) {
-	uint8_t c;
-	if (q.c > 0) {
-		c = q.q[q.r];
-		q.r = (q.r+1) & QMASK;
-		q.c--;
-		return c;
-	}
-	return 0;
+	ringbuffer_push(&hid_q, c);
 }
 
-static uint8_t hid_peek(void) {
-	if (q.c > 0) {
-		return q.q[q.r];
-	}
-	return 0;
+static inline uint8_t hid_dq(void) {
+	return ringbuffer_pop(&hid_q);
 }
+
+static inline uint8_t hid_peek(void) {
+	return ringbuffer_peek(&hid_q);
+}
+
 
 /* This is called periodically to let us report keys if we have any.
  * We only report one key at a time because the report buffer is a

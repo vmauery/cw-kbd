@@ -40,37 +40,15 @@ void didah_decode(didah_queue_t next);
 static void (*cw_dq_cb)(uint8_t);
 static uint8_t dit_len;
 
-/* define the queue length (must be a power of two) */
-#define QLEN 128
-#define QMASK (QLEN-1)
-
-struct q {
-	char q[QLEN];
-	uint8_t r; // reader pos
-	uint8_t w; // writer pos
-	uint8_t c; // count
-};
-
-static struct q q;
-
-static uint8_t cw_nq(char c) {
-	if (q.c < QLEN) {
-		q.c++;
-		q.q[q.w] = c;
-		q.w = (q.w+1) & QMASK;
-		return 1;
-	}
-	return 0;
+DECLARE_RINGBUFFER(cw_q, 128);
+static void cw_nq(uint8_t c) {
+	ringbuffer_push(&cw_q, c);
 }
-static uint8_t cw_dq(char *c) {
-	if (q.c > 0) {
-		*c = q.q[q.r];
-		q.r = (q.r+1) & QMASK;
-		q.c--;
-		return 1;
-	}
-	return 0;
+
+static inline uint8_t cw_dq(void) {
+	return ringbuffer_pop(&cw_q);
 }
+
 
 /* encoding of the morse code is as follows:
  * zeros at high order bits until start bit (one)
@@ -476,7 +454,7 @@ static void cw_out_advance_tick(void) {
 				state = cws_send_bit;
 				return cw_out_advance_tick();
 			}
-			if (cw_dq((char*)&byte)) {
+			if ((byte = cw_dq())) {
 				debug("cw_dq byte %d\r\n", byte);
 				if (byte > 127) break;
 				orig_byte = byte;

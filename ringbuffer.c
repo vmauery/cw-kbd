@@ -40,7 +40,10 @@ void ringbuffer_dump(const char *str, const struct ringbuffer *rb) {
 uint8_t ringbuffer_peek(struct ringbuffer *rb) {
 	uint8_t out;
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-		out = rb->q[rb->out];
+		if (rb->count > 0)
+			out = rb->q[rb->out];
+		else
+			out = 0;
 	}
 	return out;
 }
@@ -56,7 +59,7 @@ uint8_t ringbuffer_pop(struct ringbuffer *rb) {
 
 			rb->count--;
 		} else {
-			out = 0xff;
+			out = 0;
 		}
 	}
 	ringbuffer_dump("pop-post", rb);
