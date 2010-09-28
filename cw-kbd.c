@@ -273,7 +273,7 @@ static const prog_uint8_t ascii2hid[] = {
 	/* 7f */  0,     /* DEL */
 };
 
-DECLARE_RINGBUFFER(hid_q, 128);
+DECLARE_RINGBUFFER(hid_q, 8);
 static void hid_nq(uint8_t c) {
 	debug("hid_nq(%d)\r\n", c);
 	ringbuffer_push(&hid_q, c);
