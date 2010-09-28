@@ -39,6 +39,7 @@ void didah_decode(didah_queue_t next);
 
 static void (*cw_dq_cb)(uint8_t);
 static uint8_t dit_len;
+static keying_mode_t keying_mode = keying_mode_ultimatic;
 
 DECLARE_RINGBUFFER(cw_q, 128);
 static void cw_nq(uint8_t c) {
@@ -644,6 +645,7 @@ uint16_t didah_len[2];
 
 static didah_queue_t left_didah = DAH;
 #define right_didah ((left_didah+1)&0x01)
+#define other_didah(D) ((D+1)&0x01)
 static void cw_in_advance_tick(enum keying_transition_events event) {
 	static enum keying_state cstate = keying_idle;
 	static int16_t keyed_ticks[3];
@@ -703,6 +705,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			if (keyed_ticks[left_didah]++ == didah_len[left_didah]) {
 				keyed_ticks[left_didah] = 0;
 				didah_enqueue(left_didah);
+				last_keyed = SPACE;
 			}
 			break;
 		case keying_x_left_key_press:
@@ -712,6 +715,10 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			nstate = keying_idle;
 			enqueued_spaces = 0;
 			keyed_ticks[SPACE] = 0;
+			if (keying_mode == keying_mode_iambic_b && last_keyed != SPACE) {
+				didah_enqueue(last_keyed);
+				last_keyed = SPACE;
+			}
 			break;
 		case keying_x_right_key_press:
 			keyed_ticks[right_didah] = didah_len[right_didah];
@@ -732,6 +739,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			if (keyed_ticks[right_didah]++ == didah_len[right_didah]) {
 				keyed_ticks[right_didah] = 0;
 				didah_enqueue(right_didah);
+				last_keyed = SPACE;
 			}
 			break;
 		case keying_x_left_key_press:
@@ -749,6 +757,10 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			nstate = keying_idle;
 			enqueued_spaces = 0;
 			keyed_ticks[SPACE] = 0;
+			if (keying_mode == keying_mode_iambic_b && last_keyed != SPACE) {
+				didah_enqueue(last_keyed);
+				last_keyed = SPACE;
+			}
 			break;
 		}
 		break;
@@ -758,8 +770,11 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		switch (event) {
 		case keying_x_tick:
 			if (keyed_ticks[last_keyed]++ == didah_len[last_keyed]) {
-				keyed_ticks[last_keyed] = 0;
 				didah_enqueue(last_keyed);
+				if (keying_mode | keying_mode_iambic) {
+					last_keyed = other_didah(last_keyed);
+				}
+				keyed_ticks[last_keyed] = 0;
 			}
 			break;
 		case keying_x_left_key_press:
