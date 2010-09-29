@@ -20,6 +20,8 @@
 #ifndef __CW_H__
 #define __CW_H__
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "util.h"
 
 #define DIT_PORT_LETTER F
@@ -51,19 +53,32 @@
 #define BEEPER_BIT  _BV(BEEPER_BIT_NUMBER)
 
 typedef void(*cw_dq_cb_t)(uint8_t);
-void cw_char(char c);
-void cw_string(const char* str);
-void cw_set_speed(uint8_t wpm);
-void cw_init(uint8_t wpm, cw_dq_cb_t cb);
-void cw_set_frequency(uint16_t hz);
 
 typedef enum {
 	keying_mode_unset = 0,
 	keying_mode_straight,
+	keying_mode_bug,
 	keying_mode_ultimatic,
 	keying_mode_iambic = 0x10,
 	keying_mode_iambic_a = 0x11,
 	keying_mode_iambic_b = 0x12,
 } __attribute__((packed)) keying_mode_t;
+
+typedef enum {
+	DIT,
+	DAH,
+	SPACE,
+} __attribute__((packed)) didah_queue_t;
+
+void cw_char(char c);
+void cw_string(const char* str);
+void cw_set_speed(uint8_t wpm);
+void cw_set_left_key(didah_queue_t didah);
+didah_queue_t cw_get_left_key(void);
+void cw_init(uint8_t wpm, cw_dq_cb_t cb);
+void cw_set_frequency(uint16_t hz);
+void cw_set_keying_mode(keying_mode_t mode);
+void cw_set_dq_callback(cw_dq_cb_t cb);
+void cw_enable_outputs(bool enable);
 
 #endif

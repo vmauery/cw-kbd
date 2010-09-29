@@ -17,41 +17,23 @@
  * Copyright © 2009-2010, Vernon Mauery (N7OH)
 */
 
-//#include <avr/eeprom.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "util.h"
 
+#include "settings.h"
 #include "ringbuffer.h"
 #include "cw-kbd.h"
 #include "cw.h"
 #include "timer.h"
 #include "tick.h"
 
-static uint8_t wpm = 20;
-
 static void hid_nq(uint8_t c);
-
-enum paddle_mode_t {
-	paddle_mode_bug = 0,
-	paddle_mode_straight_key,
-	paddle_mode_ultimatic,
-	paddle_mode_iambic_a,
-	paddle_mode_iambic_b,
-	paddle_mode_count,
-};
-/*
-EEMEM struct prefs_ {
-	uint8_t wpm;
-	enum paddle_mode_t mode;
-	uint8_t autospace;
-} prefs = {
-	13,
-	paddle_mode_bug,
-	0,
-};
-*/
+void set_command_mode(bool mode);
 
 uint8_t hid_in_report_buffer[sizeof(USB_KeyboardReport_Data_t)];
 
@@ -336,8 +318,6 @@ void CALLBACK_HID_Device_ProcessHIDReport(
 {
 }
 
-static uint16_t freq = 220;
-
 /* The plan here is to tag the key presses with timestamps so we
  * can collate the timeline of events into dits, dahs and spaces
  * which can then be collated into characters and prosigns
@@ -451,7 +431,234 @@ static void toggle_port(void) {
 	PORTD ^= _BV(PD6);
 }
 
+enum command_mode_state {
+	command_idle, /* waiting for command */
+	command_input, /* waiting for command parameters */
+	command_output, /* sending command reply */
+} __attribute__((packed));
+
+#if DEBUG
+prog_char command_state_0[] PROGMEM = "command_idle";
+prog_char command_state_1[] PROGMEM = "command_input";
+prog_char command_state_2[] PROGMEM = "command_output";
+prog_char *command_mode_state_s[] PROGMEM = {
+	command_state_0,
+	command_state_1,
+	command_state_2,
+};
+#endif /* DEBUG */
+
+void command_mode_cb(uint8_t v) {
+	static enum command_mode_state cm_state;
+	static uint8_t cmd_bytes;
+	static uint8_t msg[65];
+	static uint8_t idx;
+	static uint8_t mid;
+	static uint8_t command;
+	debug("command_mode(%S) <- %d\r\n",
+		&command_mode_state_s[cm_state], v);
+	if (v == 0) {
+		cm_state = command_idle;
+		cmd_bytes = idx = command = 0;
+		memset(msg, 0, sizeof(msg));
+		return;
+	}
+	hid_nq(v);
+	switch (cm_state) {
+	case command_idle:
+		command = v;
+		switch (v) {
+		case 'c': /* callsign */
+			/* up to 16 bytes */
+			cmd_bytes = 16;
+			cm_state = command_input;
+			debug("set callsign\r\n");
+			break;
+		case 'd': /* dit paddle */
+			/* read in 1 byte for paddle
+			 * e or t
+			 * (touch once with dit paddle) */
+			cmd_bytes = 1;
+			cm_state = command_input;
+			debug("set dit\r\n");
+			break;
+		case 'e':
+			set_command_mode(false);
+			settings_get_callsign(msg);
+			msg[16] = 0;
+			cw_string((char*)msg);
+			break;
+		case 'k': /* keyer mode */
+			/* one byte for keyer mode
+			 * iambic (A), iambic (B), (C)ootie or bug,
+			 * (S)traight, (U)ltimatic */
+			cmd_bytes = 1;
+			cm_state = command_input;
+			debug("set keyer\r\n");
+			break;
+		case 'm': /* message mode */
+			/* one byte for mid 0-9 */
+			cmd_bytes = 1;
+			cm_state = command_input;
+			debug("set message mode\r\n");
+			break;
+		case 's': /* speed setting */
+			/* read 2 bytes for wpm */
+			cmd_bytes = 2;
+			cm_state = command_input;
+			debug("set speed\r\n");
+			break;
+		case 't': /* tone setting */
+			/* read in 3 bytes for tone */
+			cmd_bytes = 3;
+			cm_state = command_input;
+			debug("set tone\r\n");
+			break;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			debug("play memory %d\r\n", v-'0');
+			set_command_mode(false);
+			settings_get_memory(v-'0', msg);
+			msg[64] = 0;
+			cw_string((char*)msg);
+			break;
+		default:
+			debug("unknown command: %v\r\n", v);
+			cmd_bytes = 1;
+			cm_state = command_output;
+			cw_char('?');
+			break;
+		}
+		if (cm_state == command_input) {
+			memset(msg, 0, sizeof(msg));
+			idx = 0;
+		}
+		break;
+	case command_input:
+		/* '+' === /AR or EOM */
+		if (v == '\b') {
+			if (idx > 0) {
+				msg[--idx] = 0;
+				cmd_bytes++;
+			}
+			break;
+		}
+		if (v == '_')
+			v = ' ';
+		if (--cmd_bytes == 0 || v == '+') {
+			if (v == '+')
+				msg[idx] = 0;
+			else {
+				msg[idx++] = v;
+				msg[idx] = 0;
+			}
+			debug("command_input: msg = [%s]\r\n", msg);
+			/* save message */
+			cm_state = command_idle;
+			switch (command) {
+			case 'c': /* callsign */
+				settings_set_callsign(msg);
+				break;
+			case 'd': /* left paddle */
+				if (v == 't') {
+					didah_queue_t other =
+						(cw_get_left_key() == DIT ? DAH : DIT);
+					cw_set_left_key(other);
+				}
+				break;
+			case 'k': /* keyer mode */
+			{
+				keying_mode_t m;
+				switch (msg[0]) {
+					case 'a': m = keying_mode_iambic_a; break;
+					case 'b': m = keying_mode_iambic_b; break;
+					case 'c': m = keying_mode_bug; break;
+					case 's': m = keying_mode_straight; break;
+					case 'u': m = keying_mode_ultimatic; break;
+					default: m = settings_get_keying_mode(); break;
+				}
+				cw_set_keying_mode(m);
+			}
+			case 'm': /* message mode */
+				mid = atoi((char*)msg);
+				memset(msg, 0, sizeof(msg));
+				idx = 0;
+				cmd_bytes = 64;
+				cm_state = command_input;
+				command = 'x';
+				break;
+			case 's': /* speed setting */
+				cw_set_speed(atoi((char*)msg));
+				break;
+			case 't': /* tone setting */
+				cw_set_frequency(atoi((char*)msg));
+				break;
+			case 'x':
+				/* save the message */
+				settings_set_memory(mid, msg);
+				/* play back message */
+				cmd_bytes = strlen((char*)msg) + 3;
+				cm_state = command_output;
+				cw_char('0'+mid);
+				cw_char(':');
+				cw_char(' ');
+				cw_string((char*)msg);
+				break;
+			}
+		} else {
+			msg[idx++] = v;
+		}
+		break;
+	case command_output:
+		if (--cmd_bytes == 0) {
+			cm_state = command_idle;
+		}
+		break;
+	}
+}
+
+void int6_enable(void) {
+	/* disable debounce timer and enable interrupt */
+	ms_tick_register(NULL, TICK_DEBOUNCE_INT6, 0);
+	EICRB = (EICRB & ~_BV(ISC60)) | _BV(ISC61);
+	EIFR = _BV(INTF6);
+	EIMSK |= _BV(INT6);
+}
+
+bool command_mode = false;
+void set_command_mode(bool mode) {
+	command_mode = mode;
+	if (command_mode) {
+		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 250);
+		command_mode_cb(0);
+		cw_set_dq_callback(command_mode_cb);
+	} else {
+		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 1000);
+		cw_set_dq_callback(hid_nq);
+	}
+}
+
+/* command mode button */
+ISR(INT6_vect) {
+	/* debounce by disabling further interrupts for a short
+	 * period of time (timer) and then re-enabling them */
+	EIMSK &= ~_BV(INT6);
+	ms_tick_register(int6_enable, TICK_DEBOUNCE_INT6, 500);
+
+	set_command_mode(!command_mode);
+	debug("command_mode = %d\r\n", command_mode);
+}
+
 void sw_init(void) {
+	settings_init();
 	ms_tick_init();
 	ms_tick_register(usb_work, TICK_USB_WORK, 1);
 #ifdef INJECT_STR
@@ -481,8 +688,11 @@ void hw_init(void)
 #endif /* DEBUG */
 
 	ms_tick_start();
-	cw_init(wpm, (cw_dq_cb_t)&hid_nq);
-	cw_set_frequency(freq);
+	cw_init(settings_get_wpm(), (cw_dq_cb_t)&hid_nq);
+	cw_set_frequency(settings_get_frequency());
+
+	/* initialize the command mode button */
+	int6_enable();
 }
 
 int main(void)

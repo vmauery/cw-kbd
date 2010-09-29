@@ -114,6 +114,7 @@ SRC = $(TARGET).c                                              \
    ringbuffer.c                                                \
    sprintf.c                                                   \
    descriptors.c                                               \
+   settings.c                                                  \
    $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/Device.c             \
    $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/Endpoint.c           \
    $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/USBController.c      \
@@ -452,7 +453,7 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
 # Default target.
-all: begin gccversion sizebefore build sizeafter end
+all: begin settings.sig.h gccversion sizebefore build sizeafter end
 
 # Change the build target to build a HEX file or a library.
 build: elf hex eep list sym
@@ -662,6 +663,9 @@ $(OBJDIR)/%.o : %.S
 %.i : %.c
 	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@ 
 
+# special target settings.sig.h is a generated file
+settings.sig.h: settings.c
+	./gen_sig.sh settings.c settings.sig.h
 
 # Target: clean project.
 clean: begin clean_list end
@@ -676,7 +680,7 @@ clean_list :
 	$(REMOVE) $(TARGET).map
 	$(REMOVE) $(TARGET).sym
 	$(REMOVE) $(TARGET).list
-	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o)
+	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o) settings.sig.h
 	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.lst)
 	$(REMOVE) $(SRC:.c=.s)
 	$(REMOVE) $(SRC:.c=.d)

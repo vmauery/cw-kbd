@@ -20,6 +20,7 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include "cw-kbd.h"
+#include "settings.h"
 #include "util.h"
 #include "cw.h"
 #include "timer.h"
@@ -27,17 +28,11 @@
 #include "ringbuffer.h"
 
 
-typedef enum {
-	DIT,
-	DAH,
-	SPACE,
-} __attribute__((packed)) didah_queue_t;
-
 void didah_enqueue(didah_queue_t what);
 uint8_t didah_dequeue(didah_queue_t *didah);
 void didah_decode(didah_queue_t next);
 
-static void (*cw_dq_cb)(uint8_t);
+static cw_dq_cb_t cw_dq_cb;
 static uint8_t dit_len;
 static keying_mode_t keying_mode = keying_mode_ultimatic;
 
@@ -643,7 +638,16 @@ void didah_decode(didah_queue_t next) {
 #define initial_dit_len 96
 uint16_t didah_len[2];
 
-static didah_queue_t left_didah = DAH;
+static didah_queue_t left_didah;
+
+void cw_set_left_key(didah_queue_t didah) {
+	left_didah = didah;
+	settings_set_left_key(didah);
+}
+didah_queue_t cw_get_left_key(void) {
+	return left_didah;
+}
+
 #define right_didah ((left_didah+1)&0x01)
 #define other_didah(D) ((D+1)&0x01)
 static void cw_in_advance_tick(enum keying_transition_events event) {
@@ -806,10 +810,18 @@ static void beeper_off(void) {
 	timer3_set_scale(t16_stopped);
 	BEEPER_PORT &= ~BEEPER_BIT;
 }
+
 void cw_set_frequency(uint16_t hz) {
 	uint16_t top;
 	uint32_t tmp;
 
+	debug("cw_set_frequency(%u)\r\n", hz);
+	if (hz < 80 || hz > 8000) {
+		debug("hz out of range\r\n");
+		hz = 220;
+	}
+
+	settings_set_frequency(hz);
 	tmp = F_CPU / hz / 2 - 1;
 
 	if (tmp <= 0xffff) {
@@ -824,10 +836,21 @@ void cw_set_frequency(uint16_t hz) {
 }
 
 void cw_set_speed(uint8_t wpm) {
+	debug("cw_set_speed(%u)\r\n", wpm);
+	if (wpm < 3 || wpm > 99) {
+		debug("wpm out of range\r\n");
+		wpm = 13;
+	}
+	settings_set_wpm(wpm);
 	dit_len = 1200 / wpm;
 	didah_len[0] = 2*(uint16_t)dit_len;
 	didah_len[1] = 4*(uint16_t)dit_len;
 	cw_out_normal_tick();
+}
+
+void cw_set_keying_mode(keying_mode_t mode) {
+	keying_mode = mode;
+	settings_set_keying_mode(mode);
 }
 
 void toggle_bit(void) {
@@ -836,6 +859,22 @@ void toggle_bit(void) {
 
 void cw_tick(void) {
 	cw_in_advance_tick(keying_x_tick);
+}
+
+void cw_set_dq_callback(cw_dq_cb_t cb) {
+	cw_dq_cb = cb;
+}
+
+void cw_enable_outputs(bool enable) {
+	if (enable) {
+		DIT_DDR |= DIT_BIT;
+		DAH_DDR |= DAH_BIT;
+		CW_DDR |= CW_BIT;
+	} else {
+		DIT_DDR &= ~DIT_BIT;
+		DAH_DDR &= ~DAH_BIT;
+		CW_DDR &= ~CW_BIT;
+	}
 }
 
 ISR(INT0_vect) {
@@ -856,22 +895,22 @@ ISR(INT1_vect) {
 
 /* this sets up timer1 for asynchronous CW output */
 void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
-	cw_dq_cb = cb;
+	left_didah = settings_get_left_key();
+	cw_set_dq_callback(cb);
 	ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
 	cw_set_speed(wpm);
 	timer3_set_compare_a_callback(&toggle_bit);
 	timer3_init(t16_stopped, T16_CTC_OCRNA, T16_COMPA);
 
 	/* setup the output pins/ports */
-	DIT_DDR |= DIT_BIT;
-	DAH_DDR |= DAH_BIT;
-	CW_DDR |= CW_BIT;
+	cw_enable_outputs(true);
 	BEEPER_DDR |= BEEPER_BIT;
 
 	_delay_ms(100);
 	/* capture both edge events on INT0 and INT1 */
 	DDRD = DDRD & ~(_BV(DDD0) | _BV(DDD1));
-	EICRA = _BV(ISC10) | _BV(ISC00);
-	EIMSK = _BV(INT1) | _BV(INT0);
+	EICRA = (EICRA & ~(_BV(ISC11) | _BV(ISC01))) | (_BV(ISC10) | _BV(ISC00));
+	EIFR = _BV(INTF1) | _BV(INTF0);
+	EIMSK |= (_BV(INT1) | _BV(INT0));
 }
 

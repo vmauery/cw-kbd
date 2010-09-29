@@ -4,6 +4,7 @@ lufa
 .dep/
 *.o
 *.lst
+*.list
 *.lss
 *.hex
 *.elf
@@ -13,3 +14,4 @@ lufa
 *.sym
 .*.swp
 .*.swo
+settings.sig.h
