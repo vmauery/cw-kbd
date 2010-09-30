@@ -37,6 +37,7 @@ struct ringbuffer {
 uint8_t ringbuffer_peek(struct ringbuffer *rb);
 uint8_t ringbuffer_pop(struct ringbuffer *rb);
 void ringbuffer_push(struct ringbuffer *rb, uint8_t val);
+void ringbuffer_clear(struct ringbuffer *rb);
 uint8_t ringbuffer_count(struct ringbuffer *rb);
 uint8_t ringbuffer_empty(struct ringbuffer *rb);
 uint8_t ringbuffer_full(struct ringbuffer *rb);

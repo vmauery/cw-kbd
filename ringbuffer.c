@@ -82,6 +82,15 @@ void ringbuffer_push(struct ringbuffer *rb, uint8_t val) {
 	ringbuffer_dump("push-post", rb);
 }
 
+void ringbuffer_clear(struct ringbuffer *rb) {
+	ringbuffer_dump("clear ", rb);
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		rb->count = 0;
+		rb->out = 0;
+		rb->in = 0;
+	}
+}
+
 uint8_t ringbuffer_count(struct ringbuffer *rb) {
 	return rb->count;
 }

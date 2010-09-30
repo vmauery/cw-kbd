@@ -636,6 +636,7 @@ void int6_enable(void) {
 bool command_mode = false;
 void set_command_mode(bool mode) {
 	command_mode = mode;
+	cw_clear_queues();
 	if (command_mode) {
 		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 250);
 		command_mode_cb(0);
@@ -651,8 +652,8 @@ ISR(INT6_vect) {
 	/* debounce by disabling further interrupts for a short
 	 * period of time (timer) and then re-enabling them */
 	EIMSK &= ~_BV(INT6);
-	ms_tick_register(int6_enable, TICK_DEBOUNCE_INT6, 500);
 
+	ms_tick_register(int6_enable, TICK_DEBOUNCE_INT6, 250);
 	set_command_mode(!command_mode);
 	debug("command_mode = %d\r\n", command_mode);
 }

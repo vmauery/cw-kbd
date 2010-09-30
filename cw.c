@@ -586,6 +586,14 @@ uint8_t didah_dequeue(didah_queue_t *didah) {
 	return 0;
 }
 
+void cw_clear_queues(void) {
+	ringbuffer_clear(&cw_q);
+	if (!ringbuffer_empty(&cw_didah_q)) {
+		ringbuffer_clear(&cw_didah_q);
+		didah_decode(SPACE);
+	}
+}
+
 void didah_decode(didah_queue_t next) {
 	static uint16_t bits = 0x01;
 	uint8_t c;

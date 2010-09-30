@@ -80,5 +80,6 @@ void cw_set_frequency(uint16_t hz);
 void cw_set_keying_mode(keying_mode_t mode);
 void cw_set_dq_callback(cw_dq_cb_t cb);
 void cw_enable_outputs(bool enable);
+void cw_clear_queues(void);
 
 #endif
