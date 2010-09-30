@@ -659,14 +659,20 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 	enum keying_state nstate;
 #ifdef DEBUG
 	static enum keying_state lstate = keying_both_press;
+	static uint8_t tick_events;
 #endif
 
 	uint8_t iv = rcli();
 	nstate = cstate;
 
 #ifdef DEBUG
-	if (lstate != cstate || event != keying_x_tick)
+	if (event != keying_x_tick || tick_events++ == 0) {
+		if (tick_events != 1)
+			debug("**** skipped %u tick events\r\n", tick_events-1);
 		debug("cw_in: state %S (%S)\r\n", &keying_state_s[cstate], &keying_transition_events_s[event]);
+		if (event != keying_x_tick)
+			tick_events = 0;
+	}
 	lstate = cstate;
 #endif /* DEBUG */
 
