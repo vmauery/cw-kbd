@@ -34,7 +34,7 @@ void didah_decode(didah_queue_t next);
 
 static cw_dq_cb_t cw_dq_cb;
 static uint8_t dit_len;
-static keying_mode_t keying_mode = keying_mode_ultimatic;
+static keying_mode_t keying_mode;
 
 DECLARE_RINGBUFFER(cw_q, 128);
 static void cw_nq(uint8_t c) {
@@ -44,7 +44,6 @@ static void cw_nq(uint8_t c) {
 static inline uint8_t cw_dq(void) {
 	return ringbuffer_pop(&cw_q);
 }
-
 
 /* encoding of the morse code is as follows:
  * zeros at high order bits until start bit (one)
@@ -636,10 +635,11 @@ void didah_decode(didah_queue_t next) {
 	}
 }
 
-#define initial_dit_len 96
 uint16_t didah_len[2];
 
+#define other_didah(D) ((D+1)&0x01)
 static didah_queue_t left_didah;
+#define right_didah other_didah(left_didah)
 
 void cw_set_left_key(didah_queue_t didah) {
 	left_didah = didah;
@@ -649,8 +649,6 @@ didah_queue_t cw_get_left_key(void) {
 	return left_didah;
 }
 
-#define right_didah ((left_didah+1)&0x01)
-#define other_didah(D) ((D+1)&0x01)
 static void cw_in_advance_tick(enum keying_transition_events event) {
 	static enum keying_state cstate = keying_idle;
 	static int16_t keyed_ticks[3];
@@ -723,6 +721,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			debug("BAD!!! keying_x_left_key_release in keying_left_press\r\n");
 			break;
 		case keying_x_left_key_release:
+			debug("keying_x_left_key_release: mode = %u, last_keyed = %d\r\n", keying_mode, last_keyed);
 			nstate = keying_idle;
 			enqueued_spaces = 0;
 			keyed_ticks[SPACE] = 0;
@@ -765,6 +764,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			debug("BAD!!! keying_x_right_key_release in keying_right_press\r\n");
 			break;
 		case keying_x_right_key_release:
+			debug("keying_x_right_key_release: mode = %u, last_keyed = %d\r\n", keying_mode, last_keyed);
 			nstate = keying_idle;
 			enqueued_spaces = 0;
 			keyed_ticks[SPACE] = 0;
@@ -782,7 +782,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		case keying_x_tick:
 			if (keyed_ticks[last_keyed]++ == didah_len[last_keyed]) {
 				didah_enqueue(last_keyed);
-				if (keying_mode | keying_mode_iambic) {
+				if (keying_mode & keying_mode_iambic) {
 					last_keyed = other_didah(last_keyed);
 				}
 				keyed_ticks[last_keyed] = 0;
@@ -856,6 +856,7 @@ void cw_set_speed(uint8_t wpm) {
 }
 
 void cw_set_keying_mode(keying_mode_t mode) {
+	debug("cw_set_keying_mode(%u)\r\n", mode);
 	keying_mode = mode;
 	settings_set_keying_mode(mode);
 }
@@ -902,6 +903,7 @@ ISR(INT1_vect) {
 
 /* this sets up timer1 for asynchronous CW output */
 void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
+	keying_mode = settings_get_keying_mode();
 	left_didah = settings_get_left_key();
 	cw_set_dq_callback(cb);
 	ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
