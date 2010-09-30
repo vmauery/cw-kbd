@@ -455,6 +455,7 @@ static void cw_out_advance_tick(void) {
 				if (byte > 127) break;
 				orig_byte = byte;
 				if (byte == 32) {
+					didah_enqueue(SPACE);
 					state = cws_word_sp;
 					break;
 				}
