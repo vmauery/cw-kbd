@@ -588,9 +588,14 @@ void command_mode_cb(uint8_t v) {
 				cw_set_keying_mode(m);
 			}
 			case 'm': /* message mode */
-				mid = atoi((char*)msg);
-				memset(msg, 0, sizeof(msg));
 				idx = 0;
+				mid = msg[0] - '0';
+				if (mid > 9) {
+					cm_state = command_input;
+					cmd_bytes = 1;
+					break;
+				}
+				memset(msg, 0, sizeof(msg));
 				cmd_bytes = 64;
 				cm_state = command_input;
 				command = 'x';
@@ -613,6 +618,8 @@ void command_mode_cb(uint8_t v) {
 				cw_string((char*)msg);
 				break;
 			}
+			if (cm_state == command_idle)
+				set_command_mode(false);
 		} else {
 			msg[idx++] = v;
 		}
