@@ -348,22 +348,6 @@ struct key_event {
  * As the events get enqueued
  */
 
-uint8_t rcli(void) {
-	uint8_t ret = SREG;
-	cli();
-	return ret;
-}
-
-uint8_t rsei(void) {
-	uint8_t ret = SREG;
-	sei();
-	return ret;
-}
-
-void sreg(uint8_t v) {
-	SREG = v;
-}
-
 void idle(void) {
 	uint8_t imode;
 	set_sleep_mode(0);

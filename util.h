@@ -23,6 +23,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 // project/system dependent defines
 
@@ -70,6 +71,24 @@ static inline void msleep(uint16_t msecs)
 		_delay_ms(1);
 	}
 }
+
+/* interrupt stuff */
+static inline uint8_t rcli(void) {
+	uint8_t ret = SREG;
+	cli();
+	return ret;
+}
+
+static inline uint8_t rsei(void) {
+	uint8_t ret = SREG;
+	sei();
+	return ret;
+}
+
+static inline void sreg(uint8_t v) {
+	SREG = v;
+}
+
 
 /*
  * atomic 16 bit register access

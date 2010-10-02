@@ -42,10 +42,6 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 	void* report_data,
 	uint16_t* report_size);
 
-uint8_t rcli(void);
-uint8_t rsei(void);
-void sreg(uint8_t val);
-
 #ifdef DEBUG
 
 void debug_write_bytes(const char *msg);
