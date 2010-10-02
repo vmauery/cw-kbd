@@ -91,7 +91,7 @@ BUILD_TYPE = debug
 # Object files directory
 #     To put object files in current directory, use a dot (.), do NOT make
 #     this an empty or blank macro!
-OBJDIR = .
+OBJDIR = build
 
 
 # Path to the LUFA library
@@ -114,6 +114,7 @@ SRC = $(TARGET).c                                              \
    ringbuffer.c                                                \
    sprintf.c                                                   \
    descriptors.c                                               \
+   settings.sig.h                                              \
    settings.c                                                  \
    $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/Device.c             \
    $(LUFA_PATH)/LUFA/Drivers/USB/LowLevel/Endpoint.c           \
@@ -453,7 +454,7 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
 # Default target.
-all: begin settings.sig.h gccversion sizebefore build sizeafter end
+all: begin gccversion builddirs sizebefore build sizeafter end
 
 # Change the build target to build a HEX file or a library.
 build: elf hex eep list sym
@@ -488,6 +489,9 @@ ELFSIZE = $(SIZE) $(MCU_FLAG) $(FORMAT_FLAG) $(TARGET).elf
 MCU_FLAG = $(shell $(SIZE) --help | grep -- --mcu > /dev/null && echo --mcu=$(MCU) )
 FORMAT_FLAG = $(shell $(SIZE) --help | grep -- --format=.*avr > /dev/null && echo --format=avr )
 
+builddirs:
+	@-mkdir -p $(foreach D, $(OBJ), \
+			$(shell dirname $(D)) )
 
 sizebefore:
 	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
@@ -680,7 +684,7 @@ clean_list :
 	$(REMOVE) $(TARGET).map
 	$(REMOVE) $(TARGET).sym
 	$(REMOVE) $(TARGET).list
-	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o) settings.sig.h
+	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o)
 	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.lst)
 	$(REMOVE) $(SRC:.c=.s)
 	$(REMOVE) $(SRC:.c=.d)
@@ -707,4 +711,4 @@ $(shell mkdir $(OBJDIR) 2>/dev/null)
 .PHONY : all begin finish end sizebefore sizeafter gccversion \
 build elf hex eep list sym coff extcoff doxygen clean          \
 clean_list clean_doxygen program dfu flip flip-ee dfu-ee      \
-debug gdb-config
+debug gdb-config builddirs
