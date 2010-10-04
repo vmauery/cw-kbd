@@ -57,8 +57,10 @@ typedef void(*cw_dq_cb_t)(uint8_t);
 typedef enum {
 	keying_mode_unset = 0,
 	keying_mode_straight,
-	keying_mode_bug,
 	keying_mode_ultimatic,
+	keying_mode_dumb = 0x04,
+	keying_mode_bug = 0x05,
+	keying_mode_paddle = 0x06,
 	keying_mode_iambic = 0x10,
 	keying_mode_iambic_a = 0x11,
 	keying_mode_iambic_b = 0x12,

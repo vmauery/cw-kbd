@@ -648,6 +648,7 @@ void command_mode_cb(uint8_t v) {
 					case 'a': m = keying_mode_iambic_a; break;
 					case 'b': m = keying_mode_iambic_b; break;
 					case 'c': m = keying_mode_bug; break;
+					case 'p': m = keying_mode_paddle; break;
 					case 's': m = keying_mode_straight; break;
 					case 'u': m = keying_mode_ultimatic; break;
 				}

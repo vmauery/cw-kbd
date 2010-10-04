@@ -719,6 +719,8 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		/* if we have a tick, stay and enqueue left didahs */
 		switch (event) {
 		case keying_x_tick:
+			if (keying_mode == keying_mode_paddle)
+				break;
 			if (keyed_ticks[left_didah]++ == didah_len[left_didah]) {
 				keyed_ticks[left_didah] = 0;
 				didah_enqueue(left_didah);
@@ -739,11 +741,17 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			}
 			break;
 		case keying_x_right_key_press:
+			if (keying_mode & keying_mode_dumb) {
+				nstate = keying_right_press;
+			} else {
+				nstate = keying_both_press;
+				last_keyed = right_didah;
+			}
 			keyed_ticks[right_didah] = didah_len[right_didah];
-			nstate = keying_both_press;
-			last_keyed = right_didah;
 			break;
 		case keying_x_right_key_release:
+			if (keying_mode & keying_mode_dumb)
+				break;
 			debug("BAD!!! keying_x_right_key_release in keying_left_press\r\n");
 			break;
 		}
@@ -754,6 +762,8 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		/* if we have a tick, stay and enqueue right didahs */
 		switch (event) {
 		case keying_x_tick:
+			if (keying_mode == keying_mode_paddle)
+				break;
 			if (keyed_ticks[right_didah]++ == didah_len[right_didah]) {
 				keyed_ticks[right_didah] = 0;
 				didah_enqueue(right_didah);
@@ -761,11 +771,17 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			}
 			break;
 		case keying_x_left_key_press:
+			if (keying_mode & keying_mode_dumb) {
+				nstate = keying_left_press;
+			} else {
+				nstate = keying_both_press;
+				last_keyed = left_didah;
+			}
 			keyed_ticks[left_didah] = didah_len[left_didah];
-			nstate = keying_both_press;
-			last_keyed = left_didah;
 			break;
 		case keying_x_left_key_release:
+			if (keying_mode & keying_mode_dumb)
+				break;
 			debug("BAD!!! keying_x_left_key_release in keying_right_press\r\n");
 			break;
 		case keying_x_right_key_press:
