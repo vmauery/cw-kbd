@@ -419,84 +419,104 @@ enum command_mode_state {
 	command_idle, /* waiting for command */
 	command_input, /* waiting for command parameters */
 	command_output, /* sending command reply */
+	command_next_action, /* see what to do next */
+	command_done, /* go back to regular mode */
 } __attribute__((packed));
 
 #if DEBUG
 prog_char command_state_0[] PROGMEM = "command_idle";
 prog_char command_state_1[] PROGMEM = "command_input";
 prog_char command_state_2[] PROGMEM = "command_output";
+prog_char command_state_3[] PROGMEM = "command_next_action";
+prog_char command_state_4[] PROGMEM = "command_done";
 prog_char *command_mode_state_s[] PROGMEM = {
 	command_state_0,
 	command_state_1,
 	command_state_2,
+	command_state_3,
+	command_state_4,
 };
 #endif /* DEBUG */
 
+/*
+
+Things we do in command mode:
+	1) prompt (one char)
+	2) read a string (one or more bytes)
+	3) play a message (with or without sending it)
+
+	callsign: (command mode, key c)
+		prompt ':c'
+		read $callsign
+		play '== $callsign'
+	dit paddle: (command mode, key d)
+		prompt ':d'
+		read $dit
+		play == L or R
+	playback: (command mode, e or 0-9)
+		send string
+	keyer mode: (command mode, key k)
+		prompt ':k'
+		read $mode
+		play '== $mode'
+	speed: (command mode, key s)
+		prompt ':s'
+		read $speed
+		play '== $speed'
+	tone: (command mode, key t)
+		prompt ':t'
+		read $tone
+		play '== $tone'
+	message: (command mode, key m)
+		prompt ':m'
+		read $mid
+		prompt ':$mid'
+		read $msg
+		play '== $msg'
+
+*/
 void command_mode_cb(uint8_t v) {
 	static enum command_mode_state cm_state;
 	static uint8_t cmd_bytes;
 	static uint8_t msg[65];
 	static uint8_t idx;
 	static uint8_t mid;
+	static uint8_t next_action;
 	static uint8_t command;
-	debug("command_mode(%S) <- %d\r\n",
+
+	debug("**** command_mode(%S) <- %d\r\n",
 		&command_mode_state_s[cm_state], v);
+	debug("\tcmd_bytes=%u, mid=%u, cmd=%u, na=%u, idx=%u\r\n", cmd_bytes, mid, command, next_action, idx);
+	debug("msg = [%s]\r\n", msg);
 	if (v == 0) {
 		cm_state = command_idle;
-		cmd_bytes = idx = command = 0;
+		cmd_bytes = idx = command = next_action = 0;
 		memset(msg, 0, sizeof(msg));
 		return;
 	}
-	hid_nq(v);
+	if (v > 2)
+		hid_nq(v);
 	switch (cm_state) {
 	case command_idle:
 		command = v;
+		next_action = 0;
 		switch (v) {
 		case 'c': /* callsign */
-			/* up to 16 bytes */
-			cmd_bytes = 16;
-			cm_state = command_input;
-			debug("set callsign\r\n");
-			break;
 		case 'd': /* dit paddle */
-			/* read in 1 byte for paddle
-			 * e or t
-			 * (touch once with dit paddle) */
-			cmd_bytes = 1;
-			cm_state = command_input;
-			debug("set dit\r\n");
+		case 'k': /* keyer mode */
+		case 'm': /* message mode */
+		case 's': /* speed setting */
+		case 't': /* tone setting */
+			cm_state = command_output;
+			cmd_bytes = 2;
+			cw_char(':');
+			cw_char(v);
 			break;
 		case 'e':
 			set_command_mode(false);
 			settings_get_callsign(msg);
 			msg[16] = 0;
 			cw_string((char*)msg);
-			break;
-		case 'k': /* keyer mode */
-			/* one byte for keyer mode
-			 * iambic (A), iambic (B), (C)ootie or bug,
-			 * (S)traight, (U)ltimatic */
-			cmd_bytes = 1;
-			cm_state = command_input;
-			debug("set keyer\r\n");
-			break;
-		case 'm': /* message mode */
-			/* one byte for mid 0-9 */
-			cmd_bytes = 1;
-			cm_state = command_input;
-			debug("set message mode\r\n");
-			break;
-		case 's': /* speed setting */
-			/* read 2 bytes for wpm */
-			cmd_bytes = 2;
-			cm_state = command_input;
-			debug("set speed\r\n");
-			break;
-		case 't': /* tone setting */
-			/* read in 3 bytes for tone */
-			cmd_bytes = 3;
-			cm_state = command_input;
-			debug("set tone\r\n");
 			break;
 		case '0':
 		case '1':
@@ -521,10 +541,6 @@ void command_mode_cb(uint8_t v) {
 			cw_char('?');
 			break;
 		}
-		if (cm_state == command_input) {
-			memset(msg, 0, sizeof(msg));
-			idx = 0;
-		}
 		break;
 	case command_input:
 		/* '+' === /AR or EOM */
@@ -545,73 +561,219 @@ void command_mode_cb(uint8_t v) {
 				msg[idx] = 0;
 			}
 			debug("command_input: msg = [%s]\r\n", msg);
-			/* save message */
-			cm_state = command_idle;
-			switch (command) {
-			case 'c': /* callsign */
-				settings_set_callsign(msg);
-				break;
-			case 'd': /* left paddle */
-				if (v == 't') {
-					didah_queue_t other =
-						(cw_get_left_key() == DIT ? DAH : DIT);
-					cw_set_left_key(other);
-				}
-				break;
-			case 'k': /* keyer mode */
-			{
-				keying_mode_t m;
-				switch (msg[0]) {
-					case 'a': m = keying_mode_iambic_a; break;
-					case 'b': m = keying_mode_iambic_b; break;
-					case 'c': m = keying_mode_bug; break;
-					case 's': m = keying_mode_straight; break;
-					case 'u': m = keying_mode_ultimatic; break;
-					default: m = settings_get_keying_mode(); break;
-				}
-				cw_set_keying_mode(m);
-			}
-			case 'm': /* message mode */
-				idx = 0;
-				mid = msg[0] - '0';
-				if (mid > 9) {
-					cm_state = command_input;
-					cmd_bytes = 1;
-					break;
-				}
-				memset(msg, 0, sizeof(msg));
-				cmd_bytes = 64;
-				cm_state = command_input;
-				command = 'x';
-				break;
-			case 's': /* speed setting */
-				cw_set_speed(atoi((char*)msg));
-				break;
-			case 't': /* tone setting */
-				cw_set_frequency(atoi((char*)msg));
-				break;
-			case 'x':
-				/* save the message */
-				settings_set_memory(mid, msg);
-				/* play back message */
-				cmd_bytes = strlen((char*)msg) + 3;
-				cm_state = command_output;
-				cw_char('0'+mid);
-				cw_char(':');
-				cw_char(' ');
-				cw_string((char*)msg);
-				break;
-			}
-			if (cm_state == command_idle)
-				set_command_mode(false);
+			cm_state = command_next_action;
+			command_mode_cb(1);
 		} else {
 			msg[idx++] = v;
 		}
 		break;
 	case command_output:
 		if (--cmd_bytes == 0) {
-			cm_state = command_idle;
+			debug("* * * output done, switching to command_next_action\r\n");
+			cm_state = command_next_action;
+			command_mode_cb(1);
 		}
+		break;
+	case command_next_action:
+		/* commonly, next_action is this:
+		 * 0: just sent prompt and recieved next input
+		 *    so we should parse the input and respond
+		 * for message, it is:
+		 * 0: reply with :$mid prompt
+		 * 1: save message
+		 */
+		cm_state = command_output;
+		switch (command) {
+		case 'c':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 16;
+				cm_state = command_input;
+			} else if (next_action == 1) {
+				next_action = 2;
+				msg[16] = 0;
+				cmd_bytes = strlen((char*)msg);
+				settings_set_callsign(msg);
+				cw_string((char*)msg);
+			} else {
+				cm_state = command_done;
+			}
+			break;
+		case 'd':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 1;
+				cm_state = command_input;
+			} else if (next_action == 1) {
+				didah_queue_t other = cw_get_left_key();
+				switch(msg[0]) {
+				case 'm':
+				case 'o':
+				case 't':
+				case '0':
+					other = (other == DIT ? DAH : DIT);
+					cw_set_left_key(other);
+				case 'e':
+				case 'i':
+				case 'h':
+				case 's':
+				case '5':
+					next_action = 2;
+					msg[0] = '='; msg[1] = '='; msg[2] = ' ';
+					msg[3] = (other == DIT ? 'L' : 'R');
+					msg[4] = 0;
+					cmd_bytes = 4;
+					cw_string((char*)msg);
+					break;
+				default:
+					next_action = 0;
+					cw_char('!');
+					cw_char(':');
+					cw_char('d');
+					cmd_bytes = 3;
+					break;
+				}
+			} else {
+				cm_state = command_done;
+			}
+			break;
+		case 'k':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 1;
+				cm_state = command_input;
+			} else if (next_action == 1) {
+				keying_mode_t m = keying_mode_unset;
+				switch (msg[0]) {
+					case 'a': m = keying_mode_iambic_a; break;
+					case 'b': m = keying_mode_iambic_b; break;
+					case 'c': m = keying_mode_bug; break;
+					case 's': m = keying_mode_straight; break;
+					case 'u': m = keying_mode_ultimatic; break;
+				}
+				if (m != keying_mode_unset) {
+					next_action = 2;
+					cw_set_keying_mode(m);
+					msg[3] = msg[0];
+					msg[0] = '='; msg[1] = '='; msg[2] = ' ';
+					msg[4] = 0;
+					cmd_bytes = 4;
+					cw_string((char*)msg);
+				} else {
+					next_action = 0;
+					cw_char('!');
+					cw_char(':');
+					cw_char('k');
+					cmd_bytes = 3;
+				}
+			} else {
+				cm_state = command_done;
+			}
+			break;
+		case 's':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 2;
+				cm_state  = command_input;
+			} else if (next_action == 1) {
+				uint8_t speed = atoi((char*)msg);
+				if (speed > 4 && speed < 100) {
+					next_action = 2;
+					cw_set_speed(speed);
+					msg[3] = msg[0]; msg[4] = msg[1];
+					msg[0] = '='; msg[1] = '='; msg[2] = ' ';
+					msg[5] = 0;
+					cmd_bytes = 5;
+					cw_string((char*)msg);
+				} else {
+					next_action = 0;
+					cw_char('!');
+					cw_char(':');
+					cw_char('s');
+					cmd_bytes = 3;
+				}
+			} else {
+				cm_state = command_done;
+			}
+			break;
+		case 't':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 3;
+				cm_state  = command_input;
+			} else if (next_action == 1) {
+				uint16_t tone = atoi((char*)msg);
+				if (tone > 80 && tone < 1000) {
+					next_action = 2;
+					cw_set_frequency(tone);
+					msg[3] = msg[0]; msg[4] = msg[1]; msg[5] = msg[2];
+					msg[0] = '='; msg[1] = '='; msg[2] = ' ';
+					msg[6] = 0;
+					cmd_bytes = 6;
+					cw_string((char*)msg);
+				} else {
+					next_action = 0;
+					cw_char('!');
+					cw_char(':');
+					cw_char('t');
+					cmd_bytes = 3;
+				}
+			} else {
+				cm_state = command_done;
+			}
+			break;
+		case 'm':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 1;
+				cm_state  = command_input;
+			} else if (next_action == 1) {
+				idx = 0;
+				mid = msg[0] - '0';
+				if (mid > 9) {
+					cmd_bytes = 3;
+					cw_char('!');
+					cw_char(':');
+					cw_char('m');
+					next_action = 0;
+				} else {
+					cmd_bytes = 2;
+					cw_char(':');
+					cw_char('0' + mid);
+					next_action = 2;
+				}
+				cm_state = command_output;
+			} else if (next_action == 2) {
+				cmd_bytes = 64;
+				cm_state = command_input;
+				next_action = 3;
+			} else if (next_action == 3) {
+				next_action = 4;
+				settings_set_memory(mid, msg);
+				/* play back message */
+				cmd_bytes = strlen((char*)msg) + 3;
+				cw_char('=');
+				cw_char('=');
+				cw_char(' ');
+				cw_string((char*)msg);
+			} else {
+				cm_state = command_done;
+			}
+			break;
+		default:
+			cm_state = command_idle;
+			break;
+		}
+		if (cm_state == command_input) {
+			idx = 0;
+			memset(msg, 0, sizeof(msg));
+		} else if (cm_state == command_done) {
+			command_mode_cb(1);
+		}
+		break;
+	case command_done:
+		command_mode_cb(0);
+		set_command_mode(false);
 		break;
 	}
 }
