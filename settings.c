@@ -25,30 +25,6 @@
 #include "settings.sig.h"
 #include "cw.h"
 
-/* SHA1SUM BEGIN */
-/* SHA1SUM SIG SHA1_SIGNATURE */
-#define MEMORY_LEN 64
-#define MEMORY_COUNT 10
-#define CALLSIGN_LEN 16
-
-#define SETTINGS_ITEMS \
-	uint32_t signature; \
-	uint8_t wpm; \
-	keying_mode_t keying_mode; \
-	didah_queue_t left_key; \
-	uint16_t frequency;
-
-typedef struct {
-	SETTINGS_ITEMS
-} settings_with_defaults_t;
-
-typedef struct {
-	SETTINGS_ITEMS
-	uint8_t callsign[CALLSIGN_LEN];
-	uint8_t memory[MEMORY_COUNT][MEMORY_LEN];
-} settings_t;
-/* SHA1SUM END */
-	
 EEMEM settings_t settings;
 PROGMEM settings_with_defaults_t default_settings = {
 	.signature = SHA1_SIGNATURE,
@@ -73,8 +49,8 @@ void settings_default(void) {
 		eeprom_write_byte(((uint8_t*)&settings)+i, v);
 	}
 	/* clear out the memories */
-	eeprom_write_byte(&settings.callsign[0], 0);
 	for (i=0; i<MEMORY_COUNT; i++) {
+		eeprom_write_byte(&settings.memory_repeat[i], 0);
 		eeprom_write_byte(&settings.memory[i][0], 0);
 	}
 }
@@ -117,18 +93,18 @@ void settings_set_left_key(didah_queue_t didah) {
 	eeprom_update_byte((uint8_t *)&settings.left_key, (uint8_t)didah);
 }
 
-void settings_get_callsign(uint8_t *call) {
-	eeprom_read_block(call, &settings.callsign[0], CALLSIGN_LEN);
-}
-
-void settings_set_callsign(const uint8_t *call) {
-	eeprom_update_block(call, &settings.callsign[0], CALLSIGN_LEN);
-}
-
 void settings_get_memory(uint8_t id, uint8_t *msg) {
 	eeprom_read_block(msg, &settings.memory[id][0], MEMORY_LEN);
 }
 
 void settings_set_memory(uint8_t id, const uint8_t *msg) {
 	eeprom_update_block(msg, &settings.memory[id][0], MEMORY_LEN);
+}
+
+uint8_t settings_get_memory_repeat(uint8_t id) {
+	return eeprom_read_byte(&settings.memory_repeat[id]);
+}
+
+void settings_set_memory_repeat(uint8_t id, const uint8_t freq) {
+	eeprom_update_byte(&settings.memory_repeat[id], freq);
 }

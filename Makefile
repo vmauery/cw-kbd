@@ -484,8 +484,9 @@ end:
 
 
 # Display size of file.
-HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET).hex
-ELFSIZE = $(SIZE) $(MCU_FLAG) $(FORMAT_FLAG) $(TARGET).elf
+HEXSIZE = $(SIZE) $(FORMAT) $(TARGET).hex
+AVRELFSIZE = $(SIZE) $(MCU_FLAG) $(FORMAT_FLAG) $(TARGET).elf
+ELFSIZE = $(SIZE) $(TARGET).elf
 MCU_FLAG = $(shell $(SIZE) --help | grep -- --mcu > /dev/null && echo --mcu=$(MCU) )
 FORMAT_FLAG = $(shell $(SIZE) --help | grep -- --format=.*avr > /dev/null && echo --format=avr )
 
@@ -498,7 +499,7 @@ sizebefore:
 	2>/dev/null; echo; fi
 
 sizeafter:
-	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
+	@if test -f $(TARGET).elf; then echo; echo $(MSG_SIZE_AFTER); $(AVRELFSIZE); $(ELFSIZE); \
 	2>/dev/null; echo; fi
 
 
@@ -668,8 +669,8 @@ $(OBJDIR)/%.o : %.S
 	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@ 
 
 # special target settings.sig.h is a generated file
-settings.sig.h: settings.c
-	./gen_sig.sh settings.c settings.sig.h
+settings.sig.h: settings.h
+	./gen_sig.sh settings.h settings.sig.h
 
 # Target: clean project.
 clean: begin clean_list end

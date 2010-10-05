@@ -22,6 +22,29 @@
 
 #include "cw.h"
 
+/* SHA1SUM BEGIN */
+/* SHA1SUM SIG SHA1_SIGNATURE */
+#define MEMORY_LEN 64
+#define MEMORY_COUNT 10
+
+#define SETTINGS_ITEMS \
+	uint32_t signature; \
+	uint8_t wpm; \
+	keying_mode_t keying_mode; \
+	didah_queue_t left_key; \
+	uint16_t frequency;
+
+typedef struct {
+	SETTINGS_ITEMS
+} settings_with_defaults_t;
+
+typedef struct {
+	SETTINGS_ITEMS
+	uint8_t memory_repeat[MEMORY_COUNT];
+	uint8_t memory[MEMORY_COUNT][MEMORY_LEN];
+} settings_t;
+/* SHA1SUM END */
+
 void settings_init(void);
 uint8_t settings_get_wpm(void);
 void settings_set_wpm(uint8_t wpm);
@@ -31,9 +54,9 @@ uint16_t settings_get_frequency(void);
 void settings_set_frequency(uint16_t freq);
 didah_queue_t settings_get_left_key(void);
 void settings_set_left_key(didah_queue_t didah);
-void settings_get_callsign(uint8_t *call);
-void settings_set_callsign(const uint8_t *call);
 void settings_get_memory(uint8_t id, uint8_t *msg);
 void settings_set_memory(uint8_t id, const uint8_t *msg);
+uint8_t settings_get_memory_repeat(uint8_t id);
+void settings_set_memory_repeat(uint8_t id, const uint8_t freq);
 
 #endif /* _SETTINGS_H_ */

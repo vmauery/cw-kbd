@@ -23,13 +23,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* if you want to have a periodic string pushed to HID
- * uncomment the INJECT_STR define
- */
-/*
-#define INJECT_STR
-*/
-
 typedef void (*tick_callback_t)(void);
 struct tick_event {
 	tick_callback_t func;
@@ -48,10 +41,7 @@ enum tick_events {
 	TICK_USB_WORK,
 	TICK_TOGGLE_PORT,
 	TICK_DEBOUNCE_INT6,
-#ifdef INJECT_STR
 	TICK_INJECT_STR,
-#endif /* INJECT_STR */
-
 	TICK_EVENTS
 } __attribute__((packed));
 

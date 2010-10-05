@@ -405,11 +405,39 @@ static void usb_work(void) {
 	USB_USBTask();
 }
 
-#ifdef INJECT_STR
-static void inject_string(void) {
-	cw_string(" ");
+static struct {
+	uint8_t next;
+	uint8_t freq;
+} repeat_q[MEMORY_COUNT];
+static uint8_t this_minute;
+
+static void set_memory_repeat(uint8_t mid, uint8_t freq) {
+	settings_set_memory_repeat(mid, freq);
+	repeat_q[mid].freq = freq;
+	repeat_q[mid].next = this_minute + freq;
 }
-#endif /* INJECT_STR */
+
+static void inject_string_init(void) {
+	uint8_t i, f;
+	for (i=0; i<MEMORY_COUNT; i++) {
+		f = settings_get_memory_repeat(i);
+		set_memory_repeat(i, f);
+	}
+}
+
+static void inject_string(void) {
+	uint8_t i;
+	uint8_t msg[65];
+
+	this_minute++;
+	for (i=0; i<MEMORY_COUNT; i++) {
+		if (repeat_q[i].freq && repeat_q[i].next == this_minute) {
+			repeat_q[i].next += repeat_q[i].freq;
+			settings_get_memory(i, msg);
+			cw_string((char*)msg);
+		}
+	}
+}
 
 static void toggle_port(void) {
 	PORTD ^= _BV(PD6);
@@ -445,10 +473,6 @@ Things we do in command mode:
 	2) read a string (one or more bytes)
 	3) play a message (with or without sending it)
 
-	callsign: (command mode, key c)
-		prompt ':c'
-		read $callsign
-		play '== $callsign'
 	dit paddle: (command mode, key d)
 		prompt ':d'
 		read $dit
@@ -501,10 +525,10 @@ void command_mode_cb(uint8_t v) {
 		command = v;
 		next_action = 0;
 		switch (v) {
-		case 'c': /* callsign */
 		case 'd': /* dit paddle */
 		case 'k': /* keyer mode */
 		case 'm': /* message mode */
+		case 'r': /* repeat mode */
 		case 's': /* speed setting */
 		case 't': /* tone setting */
 			cm_state = command_output;
@@ -513,11 +537,7 @@ void command_mode_cb(uint8_t v) {
 			cw_char(v);
 			break;
 		case 'e':
-			set_command_mode(false);
-			settings_get_callsign(msg);
-			msg[16] = 0;
-			cw_string((char*)msg);
-			break;
+			v = '0';
 		case '0':
 		case '1':
 		case '2':
@@ -584,21 +604,6 @@ void command_mode_cb(uint8_t v) {
 		 */
 		cm_state = command_output;
 		switch (command) {
-		case 'c':
-			if (next_action == 0) {
-				next_action = 1;
-				cmd_bytes = 16;
-				cm_state = command_input;
-			} else if (next_action == 1) {
-				next_action = 2;
-				msg[16] = 0;
-				cmd_bytes = strlen((char*)msg);
-				settings_set_callsign(msg);
-				cw_string((char*)msg);
-			} else {
-				cm_state = command_done;
-			}
-			break;
 		case 'd':
 			if (next_action == 0) {
 				next_action = 1;
@@ -724,6 +729,7 @@ void command_mode_cb(uint8_t v) {
 			}
 			break;
 		case 'm':
+		case 'r':
 			if (next_action == 0) {
 				next_action = 1;
 				cmd_bytes = 1;
@@ -735,7 +741,7 @@ void command_mode_cb(uint8_t v) {
 					cmd_bytes = 3;
 					cw_char('!');
 					cw_char(':');
-					cw_char('m');
+					cw_char(command);
 					next_action = 0;
 				} else {
 					cmd_bytes = 2;
@@ -745,18 +751,42 @@ void command_mode_cb(uint8_t v) {
 				}
 				cm_state = command_output;
 			} else if (next_action == 2) {
-				cmd_bytes = 64;
+				if (command == 'r')
+					cmd_bytes = 2;
+				else
+					cmd_bytes = 64;
 				cm_state = command_input;
 				next_action = 3;
 			} else if (next_action == 3) {
-				next_action = 4;
-				settings_set_memory(mid, msg);
-				/* play back message */
-				cmd_bytes = strlen((char*)msg) + 3;
-				cw_char('=');
-				cw_char('=');
-				cw_char(' ');
-				cw_string((char*)msg);
+				if (command == 'r') {
+					uint8_t r = atoi((char*)msg);
+					if ((msg[0] == '0' || r > 0) && r < 100) {
+						next_action = 4;
+						set_memory_repeat(mid, r);
+						msg[5] = msg[0]; msg[6] = msg[1];
+						msg[0] = '='; msg[1] = '='; msg[2] = ' ';
+						msg[3] = 'r'; msg[4] = '0'+mid;
+						msg[7] = 0;
+						cmd_bytes = strlen((char*)msg);
+						cw_string((char*)msg);
+					} else {
+						next_action = 2;
+						cmd_bytes = 4;
+						cw_char('!');
+						cw_char(':');
+						cw_char(command);
+						cw_char('0'+mid);
+					}
+				} else {
+					next_action = 4;
+					settings_set_memory(mid, msg);
+					/* play back message */
+					cmd_bytes = strlen((char*)msg) + 3;
+					cw_char('=');
+					cw_char('=');
+					cw_char(' ');
+					cw_string((char*)msg);
+				}
 			} else {
 				cm_state = command_done;
 			}
@@ -814,11 +844,10 @@ ISR(INT6_vect) {
 
 void sw_init(void) {
 	settings_init();
+	inject_string_init();
 	ms_tick_init();
 	ms_tick_register(usb_work, TICK_USB_WORK, 1);
-#ifdef INJECT_STR
 	ms_tick_register(inject_string, TICK_INJECT_STR, 60000);
-#endif /* INJECT_STR */
 	ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 1000);
 }
 
