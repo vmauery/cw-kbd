@@ -89,5 +89,6 @@ void cw_set_dq_callback(cw_dq_cb_t cb);
 void cw_enable_outputs(uint8_t enable_what);
 void cw_disable_outputs(uint8_t enable_what);
 void cw_clear_queues(void);
+void cw_set_beeper(bool beep);
 
 #endif

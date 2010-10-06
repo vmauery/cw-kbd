@@ -194,7 +194,7 @@ void timer1_write(uint16_t value)
 
 void timer1_set_interrupts(t16_interrupt_t interrupts_mask)
 {
-	TIMSK1 = (TIMSK1 & 0x2f) | (interrupts_mask & 0x2f); /* don't forget to set the "i" bit in the Status Register */
+	TIMSK1 = (TIMSK1 & ~0x2f) | (interrupts_mask & 0x2f); /* don't forget to set the "i" bit in the Status Register */
 }
 
 void timer1_set_compare(uint16_t compare)
@@ -325,7 +325,7 @@ void timer3_write(uint16_t value)
 
 void timer3_set_interrupts(t16_interrupt_t interrupts_mask)
 {
-	TIMSK3 = (TIMSK3 & 0x2f) | (interrupts_mask & 0x2f); /* don't forget to set the "i" bit in the Status Register */
+	TIMSK3 = (TIMSK3 & ~0x2f) | (interrupts_mask & 0x2f); /* don't forget to set the "i" bit in the Status Register */
 }
 
 void timer3_set_compare(uint16_t compare)

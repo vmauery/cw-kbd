@@ -73,6 +73,7 @@ typedef enum {
  * NOTE: OUTPUT_COMPARE_MATCH_B and INPUT_CAPTURE are NOT supported.
  */
 typedef enum {
+	T16_NO_INT = 0,
 	T16_OVERFLOW = 1,
 	T16_COMPA = 2,
 	T16_COMPB = 4,

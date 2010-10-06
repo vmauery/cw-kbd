@@ -20,6 +20,8 @@
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "cw-kbd.h"
 #include "settings.h"
 #include "settings.sig.h"
@@ -107,4 +109,12 @@ uint8_t settings_get_memory_repeat(uint8_t id) {
 
 void settings_set_memory_repeat(uint8_t id, const uint8_t freq) {
 	eeprom_update_byte(&settings.memory_repeat[id], freq);
+}
+
+bool settings_get_beeper(void) {
+	return (bool)eeprom_read_byte((uint8_t*)&settings.beeper);
+}
+
+void settings_set_beeper(bool beep) {
+	eeprom_update_byte((uint8_t*)&settings.beeper, (uint8_t)beep);
 }

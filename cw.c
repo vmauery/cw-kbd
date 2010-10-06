@@ -967,6 +967,19 @@ ISR(INT1_vect) {
 	cw_in_advance_tick(event);
 }
 
+void cw_set_beeper(bool beep) {
+	debug("cw_set_beeper(%u)\r\n", (uint8_t)beep);
+	settings_set_beeper(beep);
+	if (beep) {
+		timer3_init(t16_stopped, T16_CTC_OCRNA, T16_COMPA);
+		cw_enable_outputs(CW_ENABLE_BEEPER);
+	} else {
+		timer3_stop();
+		timer3_set_interrupts(T16_NO_INT);
+		cw_disable_outputs(CW_ENABLE_BEEPER);
+	}
+}
+
 /* this sets up timer1 for asynchronous CW output */
 void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	keying_mode = settings_get_keying_mode();
@@ -975,7 +988,7 @@ void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
 	cw_set_speed(wpm);
 	timer3_set_compare_a_callback(&toggle_bit);
-	timer3_init(t16_stopped, T16_CTC_OCRNA, T16_COMPA);
+	cw_set_beeper(settings_get_beeper());
 
 	/* setup the output pins/ports */
 	cw_enable_outputs(CW_ENABLE_ALL);

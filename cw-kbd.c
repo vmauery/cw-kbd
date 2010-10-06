@@ -536,6 +536,13 @@ void command_mode_cb(uint8_t v) {
 			cw_char(':');
 			cw_char(v);
 			break;
+		case 'q': /* quiet mode */
+			cw_set_beeper(!settings_get_beeper());
+			cm_state = command_output;
+			cmd_bytes = 2;
+			cw_char('=');
+			cw_char('=');
+			break;
 		case 'e':
 			v = '0';
 		case '0':
@@ -727,6 +734,9 @@ void command_mode_cb(uint8_t v) {
 			} else {
 				cm_state = command_done;
 			}
+			break;
+		case 'q':
+			cm_state = command_done;
 			break;
 		case 'm':
 		case 'r':
