@@ -21,16 +21,13 @@
 #include <stdint.h>
 
 /* Format a string */
-int my_snprintf(char *str, uint8_t len, PGM_P format, ...)
-{
-	char **arg = (char **) &format;
+int my_snvprintf(char *str, uint8_t len, PGM_P format, char **arg) {
 	int c;
 	char buf[20];
 	int ret = 0;
 	char *p;
 
 	len--;
-	arg++;
 
 	while ((c = pgm_read_byte(format++)) != 0 && ret < len)
 	{
@@ -118,5 +115,10 @@ out:
 	*str = 0;
 
 	return ret;
+}
+
+int my_snprintf(char *str, uint8_t len, PGM_P format, ...)
+{
+	return my_snvprintf(str, len, format, ((char **) &format)+1);
 }
 

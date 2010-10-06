@@ -79,6 +79,14 @@ void debug_write_byte(const char c) {
 
 uint8_t debug_write = 0;
 
+void _debug(PGM_P fmt, ...) {
+	if (debug_write) {
+		char _dbg_msg[100];
+		my_snvprintf(_dbg_msg, sizeof(_dbg_msg), fmt, ((char **)&fmt)+1);
+		debug_write_bytes(_dbg_msg);
+	}
+}
+
 #endif /* DEBUG */
 
 /* Event handler for the library USB Connection event. */
