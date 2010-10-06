@@ -42,6 +42,7 @@ enum tick_events {
 	TICK_TOGGLE_PORT,
 	TICK_DEBOUNCE_INT6,
 	TICK_INJECT_STR,
+	TICK_RESET_BUTTON,
 	TICK_EVENTS
 } __attribute__((packed));
 

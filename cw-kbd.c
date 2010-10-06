@@ -812,6 +812,7 @@ void command_mode_cb(uint8_t v) {
 void int6_enable(void) {
 	/* disable debounce timer and enable interrupt */
 	ms_tick_register(NULL, TICK_DEBOUNCE_INT6, 0);
+	DDRE &= ~_BV(PE6);
 	EICRB = (EICRB & ~_BV(ISC60)) | _BV(ISC61);
 	EIFR = _BV(INTF6);
 	EIMSK |= _BV(INT6);
@@ -833,12 +834,21 @@ void set_command_mode(bool mode) {
 	}
 }
 
+static void reset_button_pressed(void) {
+	ms_tick_register(NULL, TICK_RESET_BUTTON, 0);
+	debug("PINE = %u\r\n", PINE);
+	if ((PINE & _BV(PE6)) == 0) {
+		debug("resetting eeprom defaults\r\n");
+		settings_default();
+	}
+}
+
 /* command mode button */
 ISR(INT6_vect) {
 	/* debounce by disabling further interrupts for a short
 	 * period of time (timer) and then re-enabling them */
 	EIMSK &= ~_BV(INT6);
-
+	ms_tick_register(reset_button_pressed, TICK_RESET_BUTTON, 10000);
 	ms_tick_register(int6_enable, TICK_DEBOUNCE_INT6, 250);
 	set_command_mode(!command_mode);
 	debug("command_mode = %d\r\n", command_mode);

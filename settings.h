@@ -46,6 +46,7 @@ typedef struct {
 /* SHA1SUM END */
 
 void settings_init(void);
+void settings_default(void);
 uint8_t settings_get_wpm(void);
 void settings_set_wpm(uint8_t wpm);
 uint8_t settings_get_keying_mode(void);

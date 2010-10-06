@@ -46,12 +46,12 @@ void settings_default(void) {
 	uint8_t v;
 	for (i=0; i<sizeof(settings_t); i++) {
 		v = pgm_read_byte(((PGM_P)&default_settings)+i);
-		eeprom_write_byte(((uint8_t*)&settings)+i, v);
+		eeprom_update_byte(((uint8_t*)&settings)+i, v);
 	}
 	/* clear out the memories */
 	for (i=0; i<MEMORY_COUNT; i++) {
-		eeprom_write_byte(&settings.memory_repeat[i], 0);
-		eeprom_write_byte(&settings.memory[i][0], 0);
+		eeprom_update_byte(&settings.memory_repeat[i], 0);
+		eeprom_update_byte(&settings.memory[i][0], 0);
 	}
 }
 
