@@ -25,21 +25,21 @@
 #include "util.h"
 
 #define DIT_PORT_LETTER F
-#define DIT_BIT_NUMBER 6
+#define DIT_BIT_NUMBER 5
 
-#define DIT_PORT _PORT(CW_PORT_LETTER)
-#define DIT_DDR  _DDR(CW_PORT_LETTER)
-#define DIT_BIT  _BV(CW_BIT_NUMBER)
+#define DIT_PORT _PORT(DIT_PORT_LETTER)
+#define DIT_DDR  _DDR(DIT_PORT_LETTER)
+#define DIT_BIT  _BV(DIT_BIT_NUMBER)
 
 #define DAH_PORT_LETTER F
-#define DAH_BIT_NUMBER 7
+#define DAH_BIT_NUMBER 6
 
-#define DAH_PORT _PORT(CW_PORT_LETTER)
-#define DAH_DDR  _DDR(CW_PORT_LETTER)
-#define DAH_BIT  _BV(CW_BIT_NUMBER)
+#define DAH_PORT _PORT(DAH_PORT_LETTER)
+#define DAH_DDR  _DDR(DAH_PORT_LETTER)
+#define DAH_BIT  _BV(DAH_BIT_NUMBER)
 
-#define CW_PORT_LETTER D
-#define CW_BIT_NUMBER 6
+#define CW_PORT_LETTER F
+#define CW_BIT_NUMBER 7
 
 #define CW_PORT _PORT(CW_PORT_LETTER)
 #define CW_DDR  _DDR(CW_PORT_LETTER)
@@ -51,6 +51,11 @@
 #define BEEPER_PORT _PORT(BEEPER_PORT_LETTER)
 #define BEEPER_DDR  _DDR(BEEPER_PORT_LETTER)
 #define BEEPER_BIT  _BV(BEEPER_BIT_NUMBER)
+
+#define CW_ENABLE_BEEPER 0x01
+#define CW_ENABLE_KEYER  0x02
+#define CW_ENABLE_DIDAH  0x04
+#define CW_ENABLE_ALL    (CW_ENABLE_BEEPER|CW_ENABLE_KEYER|CW_ENABLE_DIDAH)
 
 typedef void(*cw_dq_cb_t)(uint8_t);
 
@@ -81,7 +86,8 @@ void cw_init(uint8_t wpm, cw_dq_cb_t cb);
 void cw_set_frequency(uint16_t hz);
 void cw_set_keying_mode(keying_mode_t mode);
 void cw_set_dq_callback(cw_dq_cb_t cb);
-void cw_enable_outputs(bool enable);
+void cw_enable_outputs(uint8_t enable_what);
+void cw_disable_outputs(uint8_t enable_what);
 void cw_clear_queues(void);
 
 #endif

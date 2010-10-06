@@ -897,15 +897,55 @@ void cw_set_dq_callback(cw_dq_cb_t cb) {
 	cw_dq_cb = cb;
 }
 
-void cw_enable_outputs(bool enable) {
-	if (enable) {
+void cw_enable_outputs(uint8_t enable_what) {
+	if (enable_what & CW_ENABLE_BEEPER) {
+		debug("+++ enable beeper bit\r\n");
+		BEEPER_DDR |= BEEPER_BIT;
+	}
+
+	if (enable_what & CW_ENABLE_KEYER) {
+		debug("+++ enable keyer bit\r\n");
+		CW_DDR |= CW_BIT;
+	}
+
+	if (enable_what & CW_ENABLE_DIDAH) {
+		debug("+++ enable didah bits\r\n");
 		DIT_DDR |= DIT_BIT;
 		DAH_DDR |= DAH_BIT;
-		CW_DDR |= CW_BIT;
-	} else {
+	}
+}
+
+void cw_disable_outputs(uint8_t disable_what) {
+	if (disable_what & CW_ENABLE_BEEPER) {
+		debug("--- disable beeper bits\r\n");
+		BEEPER_DDR &= ~BEEPER_BIT;
+	}
+
+	if (disable_what & CW_ENABLE_KEYER) {
+		debug("--- disable keyer bits\r\n");
+		CW_DDR &= ~CW_BIT;
+	}
+
+	if (disable_what & CW_ENABLE_DIDAH) {
+		debug("--- disable didah bits\r\n");
 		DIT_DDR &= ~DIT_BIT;
 		DAH_DDR &= ~DAH_BIT;
-		CW_DDR &= ~CW_BIT;
+	}
+}
+
+static void output_didah(didah_queue_t didah, bool pressed) {
+	if (pressed) {
+		if (didah == DIT) {
+			DIT_PORT |= DIT_BIT;
+		} else {
+			DAH_PORT |= DAH_BIT;
+		}
+	} else {
+		if (didah == DIT) {
+			DIT_PORT &= ~DIT_BIT;
+		} else {
+			DAH_PORT &= ~DAH_BIT;
+		}
 	}
 }
 
@@ -913,6 +953,7 @@ ISR(INT0_vect) {
 	enum keying_transition_events event;
 	event = (PIND & _BV(PD0)) ?
 	        keying_x_left_key_release : keying_x_left_key_press;
+	output_didah(left_didah, event == keying_x_left_key_press);
 	debug("key_left_%s (%d)\r\n", ((event==keying_x_left_key_press)?"press":"release"), PIND);
 	cw_in_advance_tick(event);
 }
@@ -921,6 +962,7 @@ ISR(INT1_vect) {
 	enum keying_transition_events event;
 	event = (PIND & _BV(PD1)) ?
 	        keying_x_right_key_release : keying_x_right_key_press;
+	output_didah(right_didah, event == keying_x_right_key_press);
 	debug("key_right_%s (%d)\r\n", ((event==keying_x_right_key_press)?"press":"release"), PIND);
 	cw_in_advance_tick(event);
 }
@@ -936,8 +978,7 @@ void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	timer3_init(t16_stopped, T16_CTC_OCRNA, T16_COMPA);
 
 	/* setup the output pins/ports */
-	cw_enable_outputs(true);
-	BEEPER_DDR |= BEEPER_BIT;
+	cw_enable_outputs(CW_ENABLE_ALL);
 
 	_delay_ms(100);
 	/* capture both edge events on INT0 and INT1 */

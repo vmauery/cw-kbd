@@ -822,10 +822,12 @@ void set_command_mode(bool mode) {
 	command_mode = mode;
 	cw_clear_queues();
 	if (command_mode) {
+		cw_disable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 250);
 		command_mode_cb(0);
 		cw_set_dq_callback(command_mode_cb);
 	} else {
+		cw_enable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 1000);
 		cw_set_dq_callback(hid_nq);
 	}
@@ -854,9 +856,15 @@ void sw_init(void) {
 /* Configures the board hardware and chip peripherals for the demo's functionality. */
 void hw_init(void)
 {
+	uint8_t v;
 	/* Disable watchdog if enabled by bootloader/fuses */
 	MCUSR &= ~(1 << WDRF);
 	wdt_disable();
+
+	/* disable jtag */
+	v = MCUCR | _BV(JTD);
+	MCUCR = v;
+	MCUCR = v;
 
 	/* Disable clock division */
 	clock_prescale_set(clock_div_1);
@@ -874,6 +882,9 @@ void hw_init(void)
 	ms_tick_start();
 	cw_init(settings_get_wpm(), (cw_dq_cb_t)&hid_nq);
 	cw_set_frequency(settings_get_frequency());
+
+	/* enable blinky led */
+	DDRD |= _BV(PD6);
 
 	/* initialize the command mode button */
 	int6_enable();
