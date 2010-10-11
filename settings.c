@@ -28,7 +28,7 @@
 #include "cw.h"
 
 EEMEM settings_t settings;
-PROGMEM settings_with_defaults_t default_settings = {
+PROGMEM struct default_preset default_settings = {
 	.signature = SHA1_SIGNATURE,
 	.wpm = 20,
 	.keying_mode = keying_mode_bug,
@@ -54,6 +54,7 @@ void settings_default(void) {
 	for (i=0; i<MEMORY_COUNT; i++) {
 		eeprom_update_byte(&settings.memory_repeat[i], 0);
 		eeprom_update_byte(&settings.memory[i][0], 0);
+		eeprom_update_byte(&settings.presets[i].wpm, 0);
 	}
 }
 
@@ -117,4 +118,25 @@ bool settings_get_beeper(void) {
 
 void settings_set_beeper(bool beep) {
 	eeprom_update_byte((uint8_t*)&settings.beeper, (uint8_t)beep);
+}
+
+void restore_preset(uint8_t pid) {
+	uint8_t wpm;
+	
+	if (pid > 9)
+		return;
+	wpm = eeprom_read_byte(&settings.presets[pid].wpm);
+	if (!wpm)
+		return;
+	cw_set_speed(wpm);
+	cw_set_keying_mode((keying_mode_t)eeprom_read_byte(&settings.presets[pid].keying_mode));
+	cw_set_left_key((didah_queue_t)eeprom_read_byte(&settings.presets[pid].left_key));
+	cw_set_frequency(eeprom_read_word(&settings.presets[pid].frequency));
+}
+
+void save_preset(uint8_t pid) {
+	struct preset p;
+
+	eeprom_read_block(&p, &settings.wpm, sizeof(struct preset));
+	eeprom_read_block(&p, &settings.wpm, sizeof(struct preset));
 }

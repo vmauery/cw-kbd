@@ -30,21 +30,27 @@
 #define MEMORY_COUNT 10
 
 #define SETTINGS_ITEMS \
-	uint32_t signature; \
 	uint8_t wpm; \
 	keying_mode_t keying_mode; \
 	didah_queue_t left_key; \
 	uint16_t frequency; \
 	bool beeper;
 
-typedef struct {
+struct preset {
 	SETTINGS_ITEMS
-} settings_with_defaults_t;
+};
+
+struct default_preset {
+	uint32_t signature;
+	SETTINGS_ITEMS;
+};
 
 typedef struct {
+	uint32_t signature; \
 	SETTINGS_ITEMS
 	uint8_t memory_repeat[MEMORY_COUNT];
 	uint8_t memory[MEMORY_COUNT][MEMORY_LEN];
+	struct preset presets[MEMORY_COUNT];
 } settings_t;
 /* SHA1SUM END */
 
@@ -64,5 +70,7 @@ uint8_t settings_get_memory_repeat(uint8_t id);
 void settings_set_memory_repeat(uint8_t id, const uint8_t freq);
 bool settings_get_beeper(void);
 void settings_set_beeper(bool beep);
+void restore_preset(uint8_t pid);
+void save_preset(uint8_t pid);
 
 #endif /* _SETTINGS_H_ */

@@ -505,6 +505,10 @@ Things we do in command mode:
 		prompt ':$mid'
 		read $msg
 		play '== $msg'
+	preset: (command mode, key p)
+		promp ':p'
+		read $preset
+		play == $preset
 
 */
 void command_mode_cb(uint8_t v) {
@@ -536,6 +540,8 @@ void command_mode_cb(uint8_t v) {
 		case 'd': /* dit paddle */
 		case 'k': /* keyer mode */
 		case 'm': /* message mode */
+		case 'n': /* preset recall */
+		case 'p': /* preset save */
 		case 'r': /* repeat mode */
 		case 's': /* speed setting */
 		case 't': /* tone setting */
@@ -691,6 +697,36 @@ void command_mode_cb(uint8_t v) {
 				cm_state = command_done;
 			}
 			break;
+		case 'n':
+		case 'p':
+			if (next_action == 0) {
+				next_action = 1;
+				cmd_bytes = 1;
+				cm_state = command_input;
+			} else if (next_action == 1) {
+				mid = v - '0';
+				if (mid > 9) {
+					next_action = 0;
+					cw_char('!');
+					cw_char(':');
+					cw_char(command);
+				} else {
+					if (v == 'n') {
+						restore_preset(mid);
+					} else {
+						save_preset(mid);
+					}
+					next_action = 2;
+					msg[0] = '='; msg[1] = '=';
+					msg[2] = ' '; msg[3] = command;
+					msg[4] = mid + '0';
+					msg[5] = 0;
+					cmd_bytes = 5;
+					cw_string((char*)msg);
+				}
+			} else {
+				cm_state = command_done;
+			}
 		case 's':
 			if (next_action == 0) {
 				next_action = 1;
