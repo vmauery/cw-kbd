@@ -26,11 +26,7 @@
 #include "tick.h"
 
 
-register uint16_t millis asm("r4");
-
-uint16_t get_millis(void) {
-	return millis;
-}
+volatile uint16_t millis;
 
 /*
  * delta_millis
