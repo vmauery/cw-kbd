@@ -596,6 +596,7 @@ void cw_clear_queues(void) {
 
 void didah_decode(didah_queue_t next) {
 	static uint16_t bits = 0x01;
+	static uint8_t last_decoded;
 	uint8_t c;
 	switch (next) {
 	case DIT:
@@ -609,17 +610,22 @@ void didah_decode(didah_queue_t next) {
 		break;
 	case SPACE:
 		debug("decoding %#x\r\n", bits);
-		if (bits == 0x01) {
+		if (bits == 0x01 && last_decoded > ' ') {
+			last_decoded = ' ';
 			if (cw_dq_cb)
 				cw_dq_cb(' ');
 			debug("decode: space\r\n");
 		/* find bits in a table */
-		} else if (bits < 127 && (c = pgm_read_byte(&cw2ascii[bits]))) {
-			if (cw_dq_cb)
-				cw_dq_cb(c);
-			debug("decode: %#x -> %d\r\n", bits&0xff, c);
+		} else if (bits < 127) {
+			if ((c = pgm_read_byte(&cw2ascii[bits]))) {
+				debug("decode: %#x -> %d\r\n", bits&0xff, c);
+				if (cw_dq_cb)
+					cw_dq_cb(c);
+			}
+			last_decoded = c;
 		} else {
 			uint8_t i, j;
+			last_decoded = 0;
 			debug("prosign: bits = %#b\r\n", bits);
 			for (i=0; i<(sizeof(prosigns)/sizeof(struct prosign)); i++) {
 				debug("prosign_lookup: %#b\r\n",
@@ -631,6 +637,7 @@ void didah_decode(didah_queue_t next) {
 							if (j == 0 && c != '\b')
 								cw_dq_cb('/');
 							cw_dq_cb(c);
+							last_decoded = c;
 						}
 						j++;
 					}
@@ -643,7 +650,7 @@ void didah_decode(didah_queue_t next) {
 	}
 }
 
-uint16_t didah_len[2];
+uint16_t didah_len[3];
 
 #define other_didah(D) ((D+1)&0x01)
 static didah_queue_t left_didah;
@@ -688,12 +695,15 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		/* if we get a (left|right) keypress, enqueue and go to keying_\1_press */
 		switch (event) {
 		case keying_x_tick:
-			if (enqueued_spaces < 1) {
+			if (enqueued_spaces < 2) {
 				keyed_ticks[SPACE]++;
-				if (keyed_ticks[SPACE] > didah_len[DIT]) {
+				if (keyed_ticks[SPACE] == didah_len[SPACE]) {
 					didah_enqueue(SPACE);
 					enqueued_spaces++;
 					keyed_ticks[SPACE] = 0;
+				} else if (keyed_ticks[SPACE] == didah_len[DIT]) {
+					didah_enqueue(SPACE);
+					enqueued_spaces++;
 				}
 			}
 			break;
@@ -874,8 +884,9 @@ void cw_set_speed(uint8_t wpm) {
 	}
 	settings_set_wpm(wpm);
 	dit_len = 1200 / wpm;
-	didah_len[0] = 2*(uint16_t)dit_len;
-	didah_len[1] = 4*(uint16_t)dit_len;
+	didah_len[DIT] = 2*(uint16_t)dit_len;
+	didah_len[DAH] = 4*(uint16_t)dit_len;
+	didah_len[SPACE] = 6*(uint16_t)dit_len;
 	cw_out_normal_tick();
 }
 
