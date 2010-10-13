@@ -616,12 +616,10 @@ void didah_decode(didah_queue_t next) {
 				cw_dq_cb(' ');
 			debug("decode: space\r\n");
 		/* find bits in a table */
-		} else if (bits < 127) {
-			if ((c = pgm_read_byte(&cw2ascii[bits]))) {
-				debug("decode: %#x -> %d\r\n", bits&0xff, c);
-				if (cw_dq_cb)
-					cw_dq_cb(c);
-			}
+		} else if (bits < 127 && (c = pgm_read_byte(&cw2ascii[bits]))) {
+			debug("decode: %#x -> %d\r\n", bits&0xff, c);
+			if (cw_dq_cb)
+				cw_dq_cb(c);
 			last_decoded = c;
 		} else {
 			uint8_t i, j;
