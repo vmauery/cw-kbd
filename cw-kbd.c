@@ -83,9 +83,15 @@ uint8_t debug_write = 0;
 void _debug(PGM_P fmt, ...) {
 	if (debug_write) {
 		char _dbg_msg[100];
+		uint8_t l;
+		utoa(millis, _dbg_msg, 10);
+		l = strlen(_dbg_msg);
+		_dbg_msg[l++] = ':';
+		_dbg_msg[l++] = ' ';
+		_dbg_msg[l] = 0;
 		va_list ap;
 		va_start(ap, fmt);
-		my_vsnprintf(_dbg_msg, sizeof(_dbg_msg), fmt, ap);
+		my_vsnprintf(_dbg_msg+l, sizeof(_dbg_msg)-l, fmt, ap);
 		va_end(ap);
 		debug_write_bytes(_dbg_msg);
 	}
