@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 #include "util.h"
@@ -82,7 +83,10 @@ uint8_t debug_write = 0;
 void _debug(PGM_P fmt, ...) {
 	if (debug_write) {
 		char _dbg_msg[100];
-		my_snvprintf(_dbg_msg, sizeof(_dbg_msg), fmt, ((char **)&fmt)+1);
+		va_list ap;
+		va_start(ap, fmt);
+		my_vsnprintf(_dbg_msg, sizeof(_dbg_msg), fmt, ap);
+		va_end(ap);
 		debug_write_bytes(_dbg_msg);
 	}
 }

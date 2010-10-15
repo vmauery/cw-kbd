@@ -19,9 +19,10 @@
 #include <avr/pgmspace.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 /* Format a string */
-int my_snvprintf(char *str, uint8_t len, PGM_P format, char **arg) {
+int my_vsnprintf(char *str, uint8_t len, PGM_P format, va_list ap) {
 	int c;
 	char buf[20];
 	int ret = 0;
@@ -39,21 +40,23 @@ altformat:
 			c = pgm_read_byte(format++);
 			switch (c) {
 			case 'c':
-				*str++ = *((int16_t *)arg++);
+				*str++ = va_arg(ap, uint16_t);
 				ret++;
 				break;
 
 			case 'i':
-			case 'd':
-				if (*((uint16_t *)arg) < 0) {
+			case 'd': {
+				int16_t v = va_arg(ap, int16_t);
+				if (v < 0) {
 					*str++ = '-';
 					ret++;
 					if (ret >= len)
 						break;
 				}
-				p = utoa (abs(*((int16_t *) arg++)), buf, 10);
+				p = utoa(abs((int16_t )v), buf, 10);
 				goto string;
 				break;
+			}
 			case 'b':
 			case 'o':
 			case 'u':
@@ -66,12 +69,12 @@ altformat:
 					c = 16;
 				else
 					c = 10;
-				p = utoa (*((uint16_t *) arg++), buf, c);
+				p = utoa (va_arg(ap, uint16_t), buf, c);
 				goto string;
 				break;
 
 			case 'S':
-				p = (char *)pgm_read_word(*arg++);
+				p = (char *)pgm_read_word(va_arg(ap, char*));
 				if (! p) {
 nullstr:
 					p = PSTR("(null)");
@@ -84,7 +87,7 @@ nullstr:
 				break;
 
 			case 's':
-				p = *arg++;
+				p = va_arg(ap, char *);
 				if (! p)
 					goto nullstr;
 
@@ -105,7 +108,7 @@ string:
 				break;
 
 			default:
-				*str++ = *((char *)arg++);
+				*str++ = c;
 				ret++;
 				break;
 			}
@@ -119,6 +122,11 @@ out:
 
 int my_snprintf(char *str, uint8_t len, PGM_P format, ...)
 {
-	return my_snvprintf(str, len, format, ((char **) &format)+1);
+	int ret;
+	va_list ap;
+	va_start(ap, format);
+	ret = my_vsnprintf(str, len, format, ap);
+	va_end(ap);
+	return ret;
 }
 

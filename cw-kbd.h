@@ -25,6 +25,7 @@
 #include <avr/interrupt.h>
 #include <avr/power.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "descriptors.h"
@@ -49,7 +50,7 @@ void debug_write_byte(const char b);
 extern uint8_t debug_write;
 
 int my_snprintf(char *str, uint8_t len, PGM_P format, ...);
-int my_snvprintf(char *str, uint8_t len, PGM_P format, char **arg);
+int my_vsnprintf(char *str, uint8_t len, PGM_P format, va_list ap);
 
 void _debug(PGM_P fmt,...);
 #define debug(A,B...) _debug(PSTR(A), ##B)
