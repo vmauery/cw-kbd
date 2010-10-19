@@ -107,12 +107,12 @@ LUFA_OPTS += -D USE_STATIC_OPTIONS="(USB_DEVICE_OPT_FULLSPEED | USB_OPT_REG_ENAB
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c                                              \
+SRC = \
+   $(TARGET).c                                                 \
    tick.c                                                      \
    timer.c                                                     \
    cw.c                                                        \
    ringbuffer.c                                                \
-   sprintf.c                                                   \
    descriptors.c                                               \
    settings.sig.h                                              \
    settings.c                                                  \
@@ -125,6 +125,13 @@ SRC = $(TARGET).c                                              \
    $(LUFA_PATH)/LUFA/Drivers/USB/HighLevel/USBTask.c           \
    $(LUFA_PATH)/LUFA/Drivers/USB/Class/Device/HID.c            \
    $(LUFA_PATH)/LUFA/Drivers/USB/Class/Device/CDC.c            \
+
+DEBUG_SRC = \
+   sprintf.c                                                   \
+
+ifeq ($(BUILD_TYPE), debug)
+ SRC += $(DEBUG_SRC)
+endif
 
 # List C++ source files here. (C dependencies are automatically generated.)
 CPPSRC = 
@@ -510,8 +517,8 @@ gccversion :
 
 
 # Program the device.  
-#program: $(TARGET).hex $(TARGET).eep
-#	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+program: $(TARGET).hex $(TARGET).eep
+	echo $(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 
 flip: $(TARGET).hex
 	batchisp -hardware usb -device $(MCU) -operation erase f
@@ -522,7 +529,7 @@ dfu: $(TARGET).hex
 	dfu-program $^
 
 teensy: $(TARGET).hex
-	teensy-load -mmcu=$(MCU) $^
+	teensy-load -mmcu=$(MCU) -v -w -V $^
 
 flip-ee: $(TARGET).hex $(TARGET).eep
 	$(COPY) $(TARGET).eep $(TARGET)eep.hex
@@ -634,38 +641,38 @@ extcoff: $(TARGET).elf
 
 
 # Compile: create object files from C source files.
-$(OBJDIR)/%.o : %.c
+$(OBJDIR)/%.o : %.c Makefile
 	@echo
 	@echo $(MSG_COMPILING) $<
 	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
 
 
 # Compile: create object files from C++ source files.
-$(OBJDIR)/%.o : %.cpp
+$(OBJDIR)/%.o : %.cpp Makefile
 	@echo
 	@echo $(MSG_COMPILING_CPP) $<
 	$(CC) -c $(ALL_CPPFLAGS) $< -o $@ 
 
 
 # Compile: create assembler files from C source files.
-%.s : %.c
+$(OBJDIR)/%.s : %.c Makefile
 	$(CC) -S $(ALL_CFLAGS) $< -o $@
 
 
 # Compile: create assembler files from C++ source files.
-%.s : %.cpp
+$(OBJDIR)/%.s : %.cpp Makefile
 	$(CC) -S $(ALL_CPPFLAGS) $< -o $@
 
 
 # Assemble: create object files from assembler source files.
-$(OBJDIR)/%.o : %.S
+$(OBJDIR)/%.o : %.S Makefile
 	@echo
 	@echo $(MSG_ASSEMBLING) $<
 	$(CC) -c $(ALL_ASFLAGS) $< -o $@
 
 
 # Create preprocessed source for use in sending a bug report.
-%.i : %.c
+$(OBJDIR)/%.i : %.c Makefile
 	$(CC) -E -mmcu=$(MCU) -I. $(CFLAGS) $< -o $@ 
 
 # special target settings.sig.h is a generated file
@@ -685,11 +692,11 @@ clean_list :
 	$(REMOVE) $(TARGET).map
 	$(REMOVE) $(TARGET).sym
 	$(REMOVE) $(TARGET).list
-	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.o)
-	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.lst)
-	$(REMOVE) $(SRC:.c=.s)
-	$(REMOVE) $(SRC:.c=.d)
-	$(REMOVE) $(SRC:.c=.i)
+	$(REMOVE) $(OBJ)
+	$(REMOVE) $(LST)
+	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.s)
+	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.d)
+	$(REMOVE) $(SRC:%.c=$(OBJDIR)/%.i)
 	$(REMOVEDIR) .dep
 
 doxygen:
