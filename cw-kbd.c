@@ -949,11 +949,11 @@ void hw_init(void)
 
 	/* Hardware Initialization */
 	USB_Init();
-#ifdef DEBUG
+#if 0
 	while (!debug_write) {
 		usb_work();
 	}
-#endif /* DEBUG */
+#endif
 
 	ms_tick_start();
 	cw_init(settings_get_wpm(), (cw_dq_cb_t)&hid_nq);
