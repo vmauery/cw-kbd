@@ -540,6 +540,8 @@ void command_mode_cb(uint8_t v) {
 		memset(msg, 0, sizeof(msg));
 		return;
 	}
+	if (v == ' ')
+		return;
 	if (v > 2)
 		hid_nq(v);
 	switch (cm_state) {
