@@ -336,36 +336,6 @@ void CALLBACK_HID_Device_ProcessHIDReport(
 {
 }
 
-/* The plan here is to tag the key presses with timestamps so we
- * can collate the timeline of events into dits, dahs and spaces
- * which can then be collated into characters and prosigns
- *
- * ideally, each event would look something like this:
-
-enum key_event_type {
-	KEY_EVENT_LEFT,
-	KEY_EVENT_RIGHT,
-	KEY_EVENT_LETTER_SPACE,
-	KEY_EVENT_WORD_SPACE,
-} __attribute__((packed));
-
-struct key_event {
-	uint16_t start;
-	uint16_t length;
-	enum key_event_type type;
-};
-
- * This would allow us to look at them by starting time and determine
- * any overlaps by merely looking at the next event in the queue.
- * Since there are only two event types and only one instance of each
- * class of event can be active at any given time, we only have to
- * look at two events to determine the current state.  A queue length
- * of 16 events is more than enough to get us through single letters
- * and more.  This will cost 80 bytes.
- *
- * As the events get enqueued
- */
-
 void idle(void) {
 	uint8_t imode;
 	set_sleep_mode(0);
