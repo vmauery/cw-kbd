@@ -693,6 +693,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 		/* if we get a (left|right) keypress, enqueue and go to keying_\1_press */
 		switch (event) {
 		case keying_x_tick:
+			last_keyed = SPACE;
 			if (enqueued_spaces < 2) {
 				keyed_ticks[SPACE]++;
 				if (keyed_ticks[SPACE] == didah_len[SPACE]) {
@@ -707,14 +708,18 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			break;
 		case keying_x_left_key_press:
 			nstate = keying_left_press;
-			keyed_ticks[left_didah] = didah_len[left_didah];
+			keyed_ticks[left_didah] = 0;
+			didah_enqueue(left_didah);
+			last_keyed = left_didah;
 			break;
 		case keying_x_left_key_release:
 			debug("BAD!!! keying_x_left_key_release in idle\r\n");
 			break;
 		case keying_x_right_key_press:
 			nstate = keying_right_press;
-			keyed_ticks[right_didah] = didah_len[right_didah];
+			keyed_ticks[right_didah] = 0;
+			didah_enqueue(right_didah);
+			last_keyed = right_didah;
 			break;
 		case keying_x_right_key_release:
 			debug("BAD!!! keying_x_right_key_release in idle\r\n");
@@ -732,7 +737,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			if (keyed_ticks[left_didah]++ == didah_len[left_didah]) {
 				keyed_ticks[left_didah] = 0;
 				didah_enqueue(left_didah);
-				last_keyed = SPACE;
+				last_keyed = left_didah;
 			}
 			break;
 		case keying_x_left_key_press:
@@ -743,19 +748,20 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			nstate = keying_idle;
 			enqueued_spaces = 0;
 			keyed_ticks[SPACE] = 0;
-			if (keying_mode == keying_mode_iambic_b && last_keyed != SPACE) {
-				didah_enqueue(last_keyed);
-				last_keyed = SPACE;
-			}
 			break;
 		case keying_x_right_key_press:
 			if (keying_mode & keying_mode_dumb) {
 				nstate = keying_right_press;
 			} else {
 				nstate = keying_both_press;
+			}
+			didah_enqueue(right_didah);
+			if (keying_mode & keying_mode_iambic) {
+				last_keyed = left_didah;
+			} else {
 				last_keyed = right_didah;
 			}
-			keyed_ticks[right_didah] = didah_len[right_didah];
+			keyed_ticks[last_keyed] = 0;
 			break;
 		case keying_x_right_key_release:
 			if (keying_mode & keying_mode_dumb)
@@ -775,7 +781,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			if (keyed_ticks[right_didah]++ == didah_len[right_didah]) {
 				keyed_ticks[right_didah] = 0;
 				didah_enqueue(right_didah);
-				last_keyed = SPACE;
+				last_keyed = right_didah;
 			}
 			break;
 		case keying_x_left_key_press:
@@ -783,9 +789,14 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 				nstate = keying_left_press;
 			} else {
 				nstate = keying_both_press;
+			}
+			didah_enqueue(left_didah);
+			if (keying_mode & keying_mode_iambic) {
+				last_keyed = right_didah;
+			} else {
 				last_keyed = left_didah;
 			}
-			keyed_ticks[left_didah] = didah_len[left_didah];
+			keyed_ticks[last_keyed] = 0;
 			break;
 		case keying_x_left_key_release:
 			if (keying_mode & keying_mode_dumb)
@@ -800,10 +811,6 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			nstate = keying_idle;
 			enqueued_spaces = 0;
 			keyed_ticks[SPACE] = 0;
-			if (keying_mode == keying_mode_iambic_b && last_keyed != SPACE) {
-				didah_enqueue(last_keyed);
-				last_keyed = SPACE;
-			}
 			break;
 		}
 		break;
@@ -825,6 +832,9 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			break;
 		case keying_x_left_key_release:
 			keyed_ticks[right_didah] = didah_len[right_didah] - didah_len[DIT];
+			if (keying_mode & keying_mode_iambic_b) {
+				didah_enqueue(last_keyed);
+			}
 			nstate = keying_right_press;
 			break;
 		case keying_x_right_key_press:
@@ -832,6 +842,9 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			break;
 		case keying_x_right_key_release:
 			keyed_ticks[left_didah] = didah_len[left_didah] - didah_len[DIT];
+			if (keying_mode & keying_mode_iambic_b) {
+				didah_enqueue(last_keyed);
+			}
 			nstate = keying_left_press;
 			break;
 		}
