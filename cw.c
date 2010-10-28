@@ -35,6 +35,7 @@ void didah_decode(didah_queue_t next);
 static cw_dq_cb_t cw_dq_cb;
 static uint8_t dit_len;
 static keying_mode_t keying_mode;
+static bool word_space;
 
 DECLARE_RINGBUFFER(cw_q, 128);
 static void cw_nq(uint8_t c) {
@@ -697,7 +698,8 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 			if (enqueued_spaces < 2) {
 				keyed_ticks[SPACE]++;
 				if (keyed_ticks[SPACE] == didah_len[SPACE]) {
-					didah_enqueue(SPACE);
+					if (word_space)
+						didah_enqueue(SPACE);
 					enqueued_spaces++;
 					keyed_ticks[SPACE] = 0;
 				} else if (keyed_ticks[SPACE] == didah_len[DIT]) {
@@ -863,6 +865,10 @@ static void beeper_off(void) {
 	BEEPER_PORT &= ~BEEPER_BIT;
 }
 
+void cw_set_word_space(bool spaces) {
+	word_space = spaces;
+}
+
 void cw_set_frequency(uint16_t hz) {
 	uint16_t top;
 	uint32_t tmp;
@@ -1006,6 +1012,7 @@ void cw_set_beeper(bool beep) {
 void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	keying_mode = settings_get_keying_mode();
 	left_didah = settings_get_left_key();
+	word_space = true;
 	cw_set_dq_callback(cb);
 	ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
 	cw_set_speed(wpm);

@@ -540,7 +540,7 @@ void command_mode_cb(uint8_t v) {
 		memset(msg, 0, sizeof(msg));
 		return;
 	}
-	if (v == ' ')
+	if (v == ' ' && cm_state != command_output)
 		return;
 	if (v > 2)
 		hid_nq(v);
@@ -887,17 +887,19 @@ void int6_enable(void) {
 bool command_mode = false;
 void set_command_mode(bool mode) {
 	command_mode = mode;
-	cw_clear_queues();
 	if (command_mode) {
+		cw_set_word_space(false);
 		cw_disable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 250);
 		command_mode_cb(0);
 		cw_set_dq_callback(command_mode_cb);
 	} else {
+		cw_set_word_space(true);
 		cw_enable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 1000);
 		cw_set_dq_callback(hid_nq);
 	}
+	cw_clear_queues();
 }
 
 static void reset_button_pressed(void) {
