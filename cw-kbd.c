@@ -398,11 +398,23 @@ static struct {
 	uint8_t freq;
 } repeat_q[MEMORY_COUNT];
 static uint8_t this_minute;
+static uint8_t string_inject_count;
+
+static void inject_string(void);
 
 static void set_memory_repeat(uint8_t mid, uint8_t freq) {
 	settings_set_memory_repeat(mid, freq);
 	repeat_q[mid].freq = freq;
 	repeat_q[mid].next = this_minute + freq;
+	if (freq) {
+		if (!string_inject_count)
+			ms_tick_register(inject_string, TICK_INJECT_STR, 60000);
+		string_inject_count++;
+	} else {
+		string_inject_count--;
+		if (!string_inject_count)
+			ms_tick_register(NULL, TICK_INJECT_STR, 0);
+	}
 }
 
 static void inject_string_init(void) {
@@ -894,11 +906,10 @@ ISR(INT6_vect) {
 
 void sw_init(void) {
 	settings_init();
-	inject_string_init();
 	ms_tick_init();
 	ms_tick_register(usb_work, TICK_USB_WORK, 1);
-	ms_tick_register(inject_string, TICK_INJECT_STR, 60000);
 	ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 1000);
+	inject_string_init();
 }
 
 /* Configures the board hardware and chip peripherals for the demo's functionality. */

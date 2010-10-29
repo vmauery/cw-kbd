@@ -124,9 +124,9 @@ SRC = \
    $(LUFA_PATH)/LUFA/Drivers/USB/HighLevel/Events.c            \
    $(LUFA_PATH)/LUFA/Drivers/USB/HighLevel/USBTask.c           \
    $(LUFA_PATH)/LUFA/Drivers/USB/Class/Device/HID.c            \
-   $(LUFA_PATH)/LUFA/Drivers/USB/Class/Device/CDC.c            \
 
 DEBUG_SRC = \
+   $(LUFA_PATH)/LUFA/Drivers/USB/Class/Device/CDC.c            \
    sprintf.c                                                   \
 
 ifeq ($(BUILD_TYPE), debug)
