@@ -31,6 +31,7 @@
 void didah_enqueue(didah_queue_t what);
 uint8_t didah_dequeue(didah_queue_t *didah);
 void didah_decode(didah_queue_t next);
+static void cw_out_hyper_tick(void);
 
 static cw_dq_cb_t cw_dq_cb;
 static uint8_t dit_len;
@@ -40,6 +41,8 @@ static bool word_space;
 DECLARE_RINGBUFFER(cw_q, 128);
 static void cw_nq(uint8_t c) {
 	ringbuffer_push(&cw_q, c);
+	if (!ms_tick_registered(TICK_CW_ADVANCE))
+		cw_out_hyper_tick();
 }
 
 static inline uint8_t cw_dq(void) {
@@ -425,10 +428,14 @@ static void cw_out_hyper_tick(void) {
 	ms_tick_register(cw_out_advance_tick, TICK_CW_ADVANCE, 1);
 }
 
+static void cw_out_stop_tick(void) {
+	ms_tick_register(NULL, TICK_CW_ADVANCE, 0);
+}
+
 static void cw_out_advance_tick(void) {
 	// state machine
 	static enum cw_state state = cws_idle;
-	static uint8_t byte, bit, orig_byte;
+	static uint8_t byte, bit, orig_byte, idle_count;
 	didah_queue_t didah;
 
 #ifdef DEBUG
@@ -437,7 +444,15 @@ static void cw_out_advance_tick(void) {
 		debug("cw_out: state %S\r\n", &cw_state_s[state]);
 	lstate = state;
 #endif /* DEBUG */
-
+	if (state > cws_idle) {
+		idle_count = 0;
+	} else {
+		idle_count++;
+		if (idle_count == 0) {
+			cw_out_stop_tick();
+			return;
+		}
+	}
 	switch (state) {
 		case cws_hyper:
 			cw_out_hyper_tick();
@@ -568,6 +583,8 @@ prog_char *keying_transition_events_s[] PROGMEM = {
 DECLARE_RINGBUFFER(cw_didah_q, DIDAH_Q_LEN);
 
 void didah_enqueue(didah_queue_t what) {
+	if (!ms_tick_registered(TICK_CW_ADVANCE))
+		cw_out_hyper_tick();
 	debug("enqueue %d\r\n", what);
 	ringbuffer_push(&cw_didah_q, what);
 }
@@ -904,7 +921,8 @@ void cw_set_speed(uint8_t wpm) {
 	didah_len[DIT] = 2*(uint16_t)dit_len;
 	didah_len[DAH] = 4*(uint16_t)dit_len;
 	didah_len[SPACE] = 6*(uint16_t)dit_len;
-	cw_out_normal_tick();
+	if (ms_tick_registered(TICK_CW_ADVANCE))
+		cw_out_normal_tick();
 }
 
 void cw_set_keying_mode(keying_mode_t mode) {
