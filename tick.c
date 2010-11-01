@@ -50,10 +50,26 @@ int16_t delta_millis(uint16_t latter, uint16_t former) {
 }
 
 static struct tick_event tick_q[TICK_EVENTS];
+volatile uint8_t waiting_events;
+
+uint8_t ms_tick_registered(enum tick_events prio) {
+	return (tick_q[prio].func != 0);
+}
+
 void ms_tick_register(tick_callback_t work, enum tick_events prio, uint16_t freq) {
 	tick_q[prio].freq = freq;
 	tick_q[prio].next_fire = millis + freq;
 	tick_q[prio].func = work;
+	if (work) {
+		if (!waiting_events)
+			ms_tick_start();
+		waiting_events |= _BV(prio);
+	} else {
+		waiting_events &= ~_BV(prio);
+		if (!waiting_events) {
+			ms_tick_stop();
+		}
+	}
 }
 
 static void ms_tick(void) {
@@ -76,6 +92,10 @@ static void ms_tick(void) {
 void ms_tick_init(void) {
 	millis = 0;
 	memset(tick_q, 0, sizeof(tick_q));
+}
+
+void ms_tick_stop(void) {
+	timer0_set_scale(t8_stopped);
 }
 
 void ms_tick_start(void) {

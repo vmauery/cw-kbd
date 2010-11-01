@@ -46,11 +46,14 @@ enum tick_events {
 } __attribute__((packed));
 
 int16_t delta_millis(uint16_t latter, uint16_t former);
+uint8_t ms_tick_registered(enum tick_events prio);
 void ms_tick_register(tick_callback_t work, enum tick_events prio, uint16_t freq);
 void ms_tick_init(void);
 void ms_tick_start(void);
+void ms_tick_stop(void);
 
 extern volatile uint16_t millis;
+extern volatile uint8_t waiting_events;
 
 /* return (micros since last tick)/4 */
 static inline uint8_t get_micros(void) {
