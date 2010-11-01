@@ -456,7 +456,7 @@ enum command_mode_state {
 	command_done, /* go back to regular mode */
 } __attribute__((packed));
 
-#if DEBUG
+#ifdef DEBUG
 prog_char command_state_0[] PROGMEM = "command_idle";
 prog_char command_state_1[] PROGMEM = "command_input";
 prog_char command_state_2[] PROGMEM = "command_output";

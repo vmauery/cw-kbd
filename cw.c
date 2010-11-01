@@ -389,7 +389,7 @@ enum cw_state {
 		cws_word_sp3,
 } __attribute__((packed));
 
-#if DEBUG
+#ifdef DEBUG
 prog_char cw_state_0[] PROGMEM = "cws_hyper";
 prog_char cw_state_1[] PROGMEM = "cws_idle";
 prog_char cw_state_2[] PROGMEM = "cws_send_bit";
@@ -535,7 +535,7 @@ enum keying_transition_events {
 	keying_x_right_key_release,
 } __attribute__((packed));
 
-#if DEBUG
+#ifdef DEBUG
 prog_char key_state_0[] PROGMEM = "keying_idle";
 prog_char key_state_1[] PROGMEM = "keying_left_press";
 prog_char key_state_2[] PROGMEM = "keying_right_press";
