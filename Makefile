@@ -128,6 +128,7 @@ SRC = \
 DEBUG_SRC = \
    $(LUFA_PATH)/LUFA/Drivers/USB/Class/Device/CDC.c            \
    sprintf.c                                                   \
+   usart.c                                                     \
 
 ifeq ($(BUILD_TYPE), debug)
  SRC += $(DEBUG_SRC)

@@ -97,6 +97,15 @@ void _debug(PGM_P fmt, ...) {
 	}
 }
 
+void _ulog(PGM_P fmt, ...) {
+	char _dbg_msg[100];
+	va_list ap;
+	va_start(ap, fmt);
+	my_vsnprintf(_dbg_msg, sizeof(_dbg_msg), fmt, ap);
+	va_end(ap);
+	usart_print(_dbg_msg);
+}
+
 #endif /* DEBUG */
 
 static void usb_work(void);
@@ -939,6 +948,12 @@ void hw_init(void)
 
 int main(void)
 {
+#ifdef DEBUG
+	sei();
+	usart_init(115200);
+	ulog("hello world\r\n");
+	cli();
+#endif /* DEBUG */
 	sw_init();
 	hw_init();
 
@@ -948,8 +963,11 @@ int main(void)
 		if (waiting_events) {
 			idle();
 		} else {
+			ulog("power down\r");
 			power_down();
+			ulog("back from the dead\r");
 		}
+		ulog_byte('.');
 	}
 }
 

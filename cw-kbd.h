@@ -43,7 +43,12 @@ bool CALLBACK_HID_Device_CreateHIDReport(
 	void* report_data,
 	uint16_t* report_size);
 
+void power_down(void);
+void idle(void);
+
 #ifdef DEBUG
+
+#include "usart.h"
 
 void debug_write_bytes(const char *msg);
 void debug_write_byte(const char b);
@@ -57,12 +62,18 @@ void _debug(PGM_P fmt,...);
 
 #define debug_byte(B) debug_write_byte(B)
 
+void _ulog(PGM_P fmt,...);
+#define ulog(A,B...) _ulog(PSTR(A), ##B)
+#define ulog_byte(B) usart_write_byte(B)
+
 #else
 
 #define debug(A,B...) do {} while(0)
 #define debug_byte(B) do {} while(0)
 
-#endif /* DEBUG */
+#define ulog(A,B...) do {} while(0)
+#define ulog_byte(B) do {} while(0)
 
+#endif /* DEBUG */
 
 #endif

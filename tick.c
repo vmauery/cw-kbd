@@ -20,6 +20,7 @@
 #include <string.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "cw-kbd.h"
 #include "cw.h"
 #include "util.h"
 #include "timer.h"
@@ -57,6 +58,7 @@ uint8_t ms_tick_registered(enum tick_events prio) {
 }
 
 void ms_tick_register(tick_callback_t work, enum tick_events prio, uint16_t freq) {
+	ulog("ms_tick_register(%#x, %u, %u): %b\r", work, prio, freq, waiting_events);
 	tick_q[prio].freq = freq;
 	tick_q[prio].next_fire = millis + freq;
 	tick_q[prio].func = work;
@@ -95,10 +97,12 @@ void ms_tick_init(void) {
 }
 
 void ms_tick_stop(void) {
+	ulog("ms_tick_stop\r");
 	timer0_set_scale(t8_stopped);
 }
 
 void ms_tick_start(void) {
+	ulog("ms_tick_start\r");
 	timer0_set_compa_callback(&ms_tick);
 	timer0_init(t8_divide_by_64, T8_CTC_MODE, T8_INT_OCA);
 	timer0_set_top(250); // (16e6 / 64) / 250 == 1000 Hz

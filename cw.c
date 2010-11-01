@@ -694,6 +694,7 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 	if (cstate == keying_idle && event == keying_x_tick) {
 		tick_events++;
 		if (tick_events == 1024) {
+			ulog("**** skipped 1024 idle tick events, going to sleep\r\n");
 			tick_events = 0;
 			ms_tick_register(NULL, TICK_CW_PARSE, 0);
 		}
