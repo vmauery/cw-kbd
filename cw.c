@@ -686,24 +686,23 @@ static void cw_in_advance_tick(enum keying_transition_events event) {
 	static didah_queue_t last_keyed;
 	static uint8_t enqueued_spaces = 0;
 	enum keying_state nstate;
-#ifdef DEBUG
-	static enum keying_state lstate = keying_both_press;
-	static uint8_t tick_events;
-#endif
+	static uint16_t tick_events;
 
 	uint8_t iv = rcli();
 	nstate = cstate;
 
-#ifdef DEBUG
-	if (event != keying_x_tick || tick_events++ == 0) {
-		if (tick_events != 1)
-			debug("**** skipped %u tick events\r\n", tick_events-1);
-		debug("cw_in: state %S (%S)\r\n", &keying_state_s[cstate], &keying_transition_events_s[event]);
-		if (event != keying_x_tick)
+	if (cstate == keying_idle && event == keying_x_tick) {
+		tick_events++;
+		if (tick_events == 1024) {
 			tick_events = 0;
+			ms_tick_register(NULL, TICK_CW_PARSE, 0);
+		}
+	} else if (event != keying_x_tick) {
+		if (tick_events > 0)
+			debug("**** skipped %u tick events\r\n", tick_events);
+		tick_events = 0;
+		debug("cw_in: state %S (%S)\r\n", &keying_state_s[cstate], &keying_transition_events_s[event]);
 	}
-	lstate = cstate;
-#endif /* DEBUG */
 
 	/* figure out what happened to get us here */
 	switch (cstate) {
@@ -997,6 +996,9 @@ static void output_didah(didah_queue_t didah, bool pressed) {
 
 ISR(INT0_vect) {
 	enum keying_transition_events event;
+	if (!ms_tick_registered(TICK_CW_PARSE)) {
+		ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
+	}
 	event = (PIND & _BV(PD0)) ?
 	        keying_x_left_key_release : keying_x_left_key_press;
 	output_didah(left_didah, event == keying_x_left_key_press);
@@ -1006,6 +1008,9 @@ ISR(INT0_vect) {
 
 ISR(INT1_vect) {
 	enum keying_transition_events event;
+	if (!ms_tick_registered(TICK_CW_PARSE)) {
+		ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
+	}
 	event = (PIND & _BV(PD1)) ?
 	        keying_x_right_key_release : keying_x_right_key_press;
 	output_didah(right_didah, event == keying_x_right_key_press);
@@ -1032,7 +1037,6 @@ void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	left_didah = settings_get_left_key();
 	word_space = true;
 	cw_set_dq_callback(cb);
-	ms_tick_register(cw_tick, TICK_CW_PARSE, 1);
 	cw_set_speed(wpm);
 	timer3_set_compare_a_callback(&toggle_bit);
 	cw_set_beeper(settings_get_beeper());
