@@ -99,6 +99,7 @@ void _debug(PGM_P fmt, ...) {
 
 #endif /* DEBUG */
 
+static void usb_work(void);
 /* Event handler for the library USB Connection event. */
 void EVENT_USB_Device_Connect(void)
 {
@@ -140,6 +141,10 @@ void EVENT_USB_Device_UnhandledControlRequest(void)
 	CDC_Device_ProcessControlRequest(&serial_iface);
 #endif /* DEBUG */
 	HID_Device_ProcessControlRequest(&kbd_iface);
+}
+
+void EVENT_USB_Device_StartOfFrame(void) {
+	usb_work();
 }
 
 static const prog_uint8_t ascii2hid[] = {
@@ -907,7 +912,6 @@ ISR(INT6_vect) {
 void sw_init(void) {
 	settings_init();
 	ms_tick_init();
-	ms_tick_register(usb_work, TICK_USB_WORK, 1);
 	ms_tick_register(toggle_port, TICK_TOGGLE_PORT, 1000);
 	inject_string_init();
 }
@@ -932,6 +936,7 @@ void hw_init(void)
 
 	/* Hardware Initialization */
 	USB_Init();
+	USB_Device_EnableSOFEvents();
 #if 0
 	while (!debug_write) {
 		usb_work();
