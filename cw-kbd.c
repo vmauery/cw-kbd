@@ -967,7 +967,11 @@ int main(void)
 	cw_string("    hi.");
 	for (;;)
 	{
-		idle();
+		if (waiting_events) {
+			idle();
+		} else {
+			power_down();
+		}
 	}
 }
 
