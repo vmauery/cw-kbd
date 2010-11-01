@@ -264,6 +264,7 @@ static t16_mode_t timer3_mode_value = 0;
 static timer_callback timer3_capture_callback_ = NULL;
 static timer_callback timer3_compare_a_callback_ = NULL;
 static timer_callback timer3_compare_b_callback_ = NULL;
+static timer_callback timer3_compare_c_callback_ = NULL;
 static timer_callback timer3_overflow_callback_ = NULL;
 
 /* Timer 3 Capture event */
@@ -283,6 +284,12 @@ ISR( TIMER3_COMPA_vect )
 ISR( TIMER3_COMPB_vect )
 {
 	if( timer3_compare_b_callback_) timer3_compare_b_callback_();
+}
+
+/* Timer 3 Compare match B */
+ISR( TIMER3_COMPC_vect )
+{
+	if( timer3_compare_c_callback_) timer3_compare_c_callback_();
 }
 
 /* Timer 3 Overflow */
