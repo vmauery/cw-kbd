@@ -36,13 +36,12 @@ struct tick_event {
  * system
  */
 enum tick_events {
+	TICK_INT6_DEBOUNCE,
 	TICK_CW_PARSE,
 	TICK_CW_ADVANCE,
 	TICK_USB_WORK,
 	TICK_TOGGLE_BIT,
-	TICK_DEBOUNCE_INT6,
 	TICK_INJECT_STR,
-	TICK_RESET_BUTTON,
 	TICK_FAUX_WDT,
 	TICK_EVENTS
 } __attribute__((packed));

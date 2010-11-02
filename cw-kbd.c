@@ -859,9 +859,8 @@ void command_mode_cb(uint8_t v) {
 
 void int6_enable(void) {
 	/* disable debounce timer and enable interrupt */
-	ms_tick_unregister(TICK_DEBOUNCE_INT6);
 	DDRE &= ~_BV(PE6);
-	EICRB &= ~(_BV(ISC60) | _BV(ISC61));
+	EICRB &= ~(_BV(ISC61) | _BV(ISC60));
 	EIFR = _BV(INTF6);
 	EIMSK |= _BV(INT6);
 }
@@ -892,24 +891,41 @@ static void exit_command_mode(void) {
 	ms_tick_unregister(TICK_FAUX_WDT);
 }
 
-static void reset_button_pressed(void) {
-	ms_tick_unregister(TICK_RESET_BUTTON);
-	debug("PINE = %u\r\n", PINE);
-	if ((PINE & _BV(PE6)) == 0) {
-		debug("resetting eeprom defaults\r\n");
-		settings_default();
+void int6_debounce(void) {
+	static uint16_t v;
+	static uint16_t last_millis;
+	uint8_t pressed;
+
+	pressed = ((PINE & _BV(PE6)) ? 0 : 1);
+	if (pressed) {
+		v++;
+		if (v == 10) {
+			set_command_mode(!command_mode);
+		} else if (v == 2000) {
+			// set sane defaults without resetting mems
+			set_command_mode(false);
+			debug("choose sane defaults\n");
+			settings_choose_sanity();
+			restore_preset(settings_get_preset());
+		} else if (v == 5000) {
+			// reset eeprom
+			set_command_mode(false);
+			debug("reset eeprom!!\n");
+			settings_default();
+		}
+	} else {
+		v = 0;
+		ms_tick_unregister(TICK_INT6_DEBOUNCE);
+		int6_enable();
 	}
+	last_millis = millis;
 }
 
 /* command mode button */
 ISR(INT6_vect) {
-	/* debounce by disabling further interrupts for a short
-	 * period of time (timer) and then re-enabling them */
 	EIMSK &= ~_BV(INT6);
-	ms_tick_register(reset_button_pressed, TICK_RESET_BUTTON, 10000);
-	ms_tick_register(int6_enable, TICK_DEBOUNCE_INT6, 250);
-	set_command_mode(!command_mode);
-	debug("command_mode = %d\r\n", command_mode);
+	debug("INT6\n");
+	ms_tick_register(int6_debounce, TICK_INT6_DEBOUNCE, 1);
 }
 
 void sw_init(void) {
