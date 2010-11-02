@@ -110,14 +110,21 @@ void _ulog(PGM_P fmt, ...) {
 #endif /* DEBUG */
 
 static void usb_work(void);
+static uint16_t enable_usb;
 /* Event handler for the library USB Connection event. */
 void EVENT_USB_Device_Connect(void)
 {
+	ms_tick_register(usb_work, TICK_USB_WORK, 15);
+	enable_usb = 10000;
+	usb_work();
+	ulog("USB ON\r");
 }
 
 /* Event handler for the library USB Disconnection event. */
 void EVENT_USB_Device_Disconnect(void)
 {
+	ulog("USB OFF\r");
+	ms_tick_register(NULL, TICK_USB_WORK, 0);
 }
 
 /* Event handler for the library USB Configuration Changed event. */
@@ -154,7 +161,6 @@ void EVENT_USB_Device_UnhandledControlRequest(void)
 }
 
 void EVENT_USB_Device_StartOfFrame(void) {
-	usb_work();
 }
 
 static const prog_uint8_t ascii2hid[] = {
@@ -936,7 +942,6 @@ void hw_init(void)
 
 	/* Hardware Initialization */
 	USB_Init();
-	USB_Device_EnableSOFEvents();
 #if 0
 	while (!debug_write) {
 		usb_work();
@@ -969,14 +974,19 @@ int main(void)
 	cw_string("    hi.");
 	for (;;)
 	{
+		if (enable_usb) {
+			usb_work();
+			_delay_ms(1);
+			enable_usb--;
+		}
 		if (waiting_events) {
 			idle();
+			ulog_byte('.');
 		} else {
-			ulog("power down\r");
+			ulog_byte('@');
 			power_down();
-			ulog("back from the dead\r");
+			ulog_byte('*');
 		}
-		ulog_byte('.');
 	}
 }
 
