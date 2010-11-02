@@ -73,5 +73,6 @@ bool settings_get_beeper(void);
 void settings_set_beeper(bool beep);
 uint8_t settings_get_preset(void);
 void restore_preset(uint8_t pid);
+void settings_dump(void);
 
 #endif /* _SETTINGS_H_ */

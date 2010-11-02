@@ -392,6 +392,15 @@ static void usb_work(void) {
 	USB_USBTask();
 }
 
+#ifdef DEBUG
+static void console_control(uint8_t b) {
+	switch (b) {
+	case 's': settings_dump(); break;
+	default: break;
+	}
+}
+#endif /* DEBUG */
+
 static struct {
 	uint8_t next;
 	uint8_t freq;

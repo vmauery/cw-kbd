@@ -149,3 +149,36 @@ void restore_preset(uint8_t pid) {
 	cw_set_left_key(settings_get_left_key());
 	cw_set_frequency(settings_get_frequency());
 }
+
+#ifdef DEBUG
+void settings_dump(void) {
+	uint8_t i;
+	uint32_t sig = eeprom_read_dword(&settings.signature);
+	uint8_t msg[MEMORY_LEN];
+	ulog("signature: %#x%x\r", (uint16_t)(sig >> 16), (uint16_t)(sig & 0xffff));
+	_delay_ms(1);
+	ulog("current_preset: %u\r", eeprom_read_byte(&settings.current_preset));
+	_delay_ms(1);
+	for (i=0; i<MEMORY_COUNT; i++) {
+		ulog("preset %u:\r", i);
+		_delay_ms(1);
+		ulog("  wpm: %u\r", eeprom_read_byte(&settings.presets[i].wpm));
+		_delay_ms(1);
+		ulog("  key mode: %u\r", eeprom_read_byte(&settings.presets[i].keying_mode));
+		_delay_ms(1);
+		ulog("  left key: %u\r", eeprom_read_byte(&settings.presets[i].left_key));
+		_delay_ms(1);
+		ulog("  freq: %u\r", eeprom_read_word(&settings.presets[i].frequency));
+		_delay_ms(1);
+		ulog("  beeper: %u\r", eeprom_read_byte((uint8_t*)&settings.presets[i].beeper));
+		_delay_ms(1);
+	}
+	for (i=0; i<10; i++) {
+		settings_get_memory(i, msg);
+		ulog("memory %u (r %u)\r", i, eeprom_read_byte(&settings.memory_repeat[i]));
+		_delay_ms(1);
+		ulog("  [%s]\r", msg);
+		_delay_ms(10);
+	}
+}
+#endif /* DEBUG */
