@@ -984,10 +984,17 @@ void hw_init(void)
 int main(void)
 {
 #ifdef DEBUG
+#define ulog_limited(B) \
+	if (sc++ == 0) \
+		ulog_byte(B)
+	uint8_t sc = 0;
 	sei();
 	usart_init(115200);
+	usart_read_callback(console_control);
 	ulog("hello world\r\n");
 	cli();
+#else
+#define ulog_limited(B) while(0) {}
 #endif /* DEBUG */
 	sw_init();
 	hw_init();
@@ -1002,7 +1009,7 @@ int main(void)
 		}
 		if (waiting_events) {
 			idle();
-			ulog_byte('.');
+			ulog_limited('.');
 		} else {
 			ulog_byte('@');
 			power_down();
