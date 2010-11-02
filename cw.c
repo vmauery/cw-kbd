@@ -673,7 +673,8 @@ static didah_queue_t left_didah;
 #define right_didah other_didah(left_didah)
 
 void cw_set_left_key(didah_queue_t didah) {
-	left_didah = didah;
+	ulog("setting left key: %#x\r", didah);
+	left_didah = other_didah(other_didah(didah));
 	settings_set_left_key(didah);
 }
 didah_queue_t cw_get_left_key(void) {
@@ -1035,7 +1036,7 @@ void cw_set_beeper(bool beep) {
 /* this sets up timer1 for asynchronous CW output */
 void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	keying_mode = settings_get_keying_mode();
-	left_didah = settings_get_left_key();
+	cw_set_left_key(settings_get_left_key());
 	word_space = true;
 	cw_set_dq_callback(cb);
 	cw_set_speed(wpm);
