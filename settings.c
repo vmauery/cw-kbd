@@ -34,7 +34,9 @@ PROGMEM struct default_preset default_settings = {
 	.keying_mode = keying_mode_bug,
 	.left_key = DIT,
 	.frequency = 220,
+	.beeper = true,
 };
+static uint8_t cp;
 
 /* signature is made by taking the sha1sum of the settings_t struct */
 bool settings_valid_signature(void) {
@@ -43,18 +45,30 @@ bool settings_valid_signature(void) {
 	return (ee_sig == pgm_sig);
 }
 
-void settings_default(void) {
-	uint16_t i;
-	uint8_t v;
-	for (i=0; i<sizeof(settings_t); i++) {
-		v = pgm_read_byte(((PGM_P)&default_settings)+i);
-		eeprom_update_byte(((uint8_t*)&settings)+i, v);
+void settings_choose_sanity(void) {
+	uint8_t i, v;
+	for (i=0; i<sizeof(struct preset); i++) {
+		v = pgm_read_byte(((PGM_P)&default_settings)+i+4);
+		eeprom_update_byte(((uint8_t*)&settings.presets[cp])+i, v);
 	}
+}
+
+void settings_default(void) {
+	uint8_t i, j;
+	eeprom_update_dword(&settings.signature,
+		pgm_read_dword(&default_settings.signature));
+	j = cp;
+	for (i=0; i<MEMORY_COUNT; i++) {
+		cp = i;
+		settings_choose_sanity();
+	}
+	cp = j;
+	eeprom_update_byte(&settings.current_preset, 0);
 	/* clear out the memories */
 	for (i=0; i<MEMORY_COUNT; i++) {
 		eeprom_update_byte(&settings.memory_repeat[i], 0);
-		eeprom_update_byte(&settings.memory[i][0], 0);
-		eeprom_update_byte(&settings.presets[i].wpm, 0);
+		for (j=0; j<MEMORY_LEN; j++)
+			eeprom_update_byte(&settings.memory[i][j], 0);
 	}
 }
 
@@ -62,38 +76,39 @@ void settings_init(void) {
 	/* check for valid signature */
 	if (!settings_valid_signature())
 		settings_default();
+	cp = settings_get_preset();
 }
 
 uint8_t settings_get_wpm(void) {
-	return eeprom_read_byte(&settings.wpm);
+	return eeprom_read_byte(&settings.presets[cp].wpm);
 }
 
 void settings_set_wpm(uint8_t wpm) {
-	eeprom_update_byte(&settings.wpm, wpm);
+	eeprom_update_byte(&settings.presets[cp].wpm, wpm);
 }
 
 uint8_t settings_get_keying_mode(void) {
-	return (keying_mode_t)eeprom_read_byte(&settings.keying_mode);
+	return (keying_mode_t)eeprom_read_byte(&settings.presets[cp].keying_mode);
 }
 
 void settings_set_keying_mode(keying_mode_t mode) {
-	eeprom_update_byte((uint8_t *)&settings.keying_mode, (uint8_t)mode);
+	eeprom_update_byte((uint8_t *)&settings.presets[cp].keying_mode, (uint8_t)mode);
 }
 
 uint16_t settings_get_frequency(void) {
-	return eeprom_read_word(&settings.frequency);
+	return eeprom_read_word(&settings.presets[cp].frequency);
 }
 
 void settings_set_frequency(uint16_t freq) {
-	eeprom_update_word(&settings.frequency, freq);
+	eeprom_update_word(&settings.presets[cp].frequency, freq);
 }
 
 didah_queue_t settings_get_left_key(void) {
-	return (didah_queue_t)eeprom_read_byte(&settings.left_key);
+	return (didah_queue_t)eeprom_read_byte(&settings.presets[cp].left_key);
 }
 
 void settings_set_left_key(didah_queue_t didah) {
-	eeprom_update_byte((uint8_t *)&settings.left_key, (uint8_t)didah);
+	eeprom_update_byte((uint8_t *)&settings.presets[cp].left_key, (uint8_t)didah);
 }
 
 void settings_get_memory(uint8_t id, uint8_t *msg) {
@@ -113,30 +128,24 @@ void settings_set_memory_repeat(uint8_t id, const uint8_t freq) {
 }
 
 bool settings_get_beeper(void) {
-	return (bool)eeprom_read_byte((uint8_t*)&settings.beeper);
+	return (bool)eeprom_read_byte((uint8_t*)&settings.presets[cp].beeper);
 }
 
 void settings_set_beeper(bool beep) {
-	eeprom_update_byte((uint8_t*)&settings.beeper, (uint8_t)beep);
+	eeprom_update_byte((uint8_t*)&settings.presets[cp].beeper, (uint8_t)beep);
+}
+
+uint8_t settings_get_preset(void) {
+	return eeprom_read_byte(&settings.current_preset);
 }
 
 void restore_preset(uint8_t pid) {
-	uint8_t wpm;
-	
 	if (pid > 9)
 		return;
-	wpm = eeprom_read_byte(&settings.presets[pid].wpm);
-	if (!wpm)
-		return;
-	cw_set_speed(wpm);
-	cw_set_keying_mode((keying_mode_t)eeprom_read_byte(&settings.presets[pid].keying_mode));
-	cw_set_left_key((didah_queue_t)eeprom_read_byte(&settings.presets[pid].left_key));
-	cw_set_frequency(eeprom_read_word(&settings.presets[pid].frequency));
-}
-
-void save_preset(uint8_t pid) {
-	struct preset p;
-
-	eeprom_read_block(&p, &settings.wpm, sizeof(struct preset));
-	eeprom_read_block(&p, &settings.wpm, sizeof(struct preset));
+	cp = pid;
+	eeprom_update_byte(&settings.current_preset, pid);
+	cw_set_speed(settings_get_wpm());
+	cw_set_keying_mode(settings_get_keying_mode());
+	cw_set_left_key(settings_get_left_key());
+	cw_set_frequency(settings_get_frequency());
 }

@@ -47,14 +47,15 @@ struct default_preset {
 
 typedef struct {
 	uint32_t signature; \
-	SETTINGS_ITEMS
+	uint8_t current_preset;
+	struct preset presets[MEMORY_COUNT];
 	uint8_t memory_repeat[MEMORY_COUNT];
 	uint8_t memory[MEMORY_COUNT][MEMORY_LEN];
-	struct preset presets[MEMORY_COUNT];
 } settings_t;
 /* SHA1SUM END */
 
 void settings_init(void);
+void settings_choose_sanity(void);
 void settings_default(void);
 uint8_t settings_get_wpm(void);
 void settings_set_wpm(uint8_t wpm);
@@ -70,7 +71,7 @@ uint8_t settings_get_memory_repeat(uint8_t id);
 void settings_set_memory_repeat(uint8_t id, const uint8_t freq);
 bool settings_get_beeper(void);
 void settings_set_beeper(bool beep);
+uint8_t settings_get_preset(void);
 void restore_preset(uint8_t pid);
-void save_preset(uint8_t pid);
 
 #endif /* _SETTINGS_H_ */
