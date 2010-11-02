@@ -35,6 +35,7 @@
 
 static void hid_nq(uint8_t c);
 void set_command_mode(bool mode);
+static void exit_command_mode(void);
 
 uint8_t hid_in_report_buffer[sizeof(USB_KeyboardReport_Data_t)];
 
@@ -522,6 +523,7 @@ void command_mode_cb(uint8_t v) {
 		return;
 	if (v > 2)
 		hid_nq(v);
+	ms_tick_register(exit_command_mode, TICK_FAUX_WDT, 30000);
 	switch (cm_state) {
 	case command_idle:
 		command = v;
@@ -869,16 +871,23 @@ void set_command_mode(bool mode) {
 		cw_set_word_space(false);
 		cw_disable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(toggle_bit, TICK_TOGGLE_BIT, 250);
+		ms_tick_register(exit_command_mode, TICK_FAUX_WDT, 30000);
 		command_mode_cb(0);
 		cw_set_dq_callback(command_mode_cb);
 	} else {
 		cw_set_word_space(true);
 		cw_enable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(NULL, TICK_TOGGLE_BIT, 0);
+		ms_tick_register(NULL, TICK_FAUX_WDT, 0);
 		set_toggle_bit();
 		cw_set_dq_callback(hid_nq);
 	}
 	cw_clear_queues();
+}
+
+static void exit_command_mode(void) {
+	set_command_mode(false);
+	ms_tick_register(NULL, TICK_FAUX_WDT, 0);
 }
 
 static void reset_button_pressed(void) {

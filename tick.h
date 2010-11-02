@@ -42,6 +42,7 @@ enum tick_events {
 	TICK_DEBOUNCE_INT6,
 	TICK_INJECT_STR,
 	TICK_RESET_BUTTON,
+	TICK_FAUX_WDT,
 	TICK_EVENTS
 } __attribute__((packed));
 
