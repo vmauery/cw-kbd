@@ -857,7 +857,7 @@ void int6_enable(void) {
 	/* disable debounce timer and enable interrupt */
 	ms_tick_register(NULL, TICK_DEBOUNCE_INT6, 0);
 	DDRE &= ~_BV(PE6);
-	EICRB = (EICRB & ~_BV(ISC60)) | _BV(ISC61);
+	EICRB &= ~(_BV(ISC60) | _BV(ISC61));
 	EIFR = _BV(INTF6);
 	EIMSK |= _BV(INT6);
 }
