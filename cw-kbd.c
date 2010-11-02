@@ -538,8 +538,7 @@ void command_mode_cb(uint8_t v) {
 		case 'd': /* dit paddle */
 		case 'k': /* keyer mode */
 		case 'm': /* message mode */
-		case 'n': /* preset recall */
-		case 'p': /* preset save */
+		case 'p': /* load preset */
 		case 'r': /* repeat mode */
 		case 's': /* speed setting */
 		case 't': /* tone setting */
@@ -695,25 +694,21 @@ void command_mode_cb(uint8_t v) {
 				cm_state = command_done;
 			}
 			break;
-		case 'n':
 		case 'p':
 			if (next_action == 0) {
 				next_action = 1;
 				cmd_bytes = 1;
 				cm_state = command_input;
 			} else if (next_action == 1) {
-				mid = v - '0';
+				idx = 0;
+				mid = msg[0] - '0';
 				if (mid > 9) {
 					next_action = 0;
 					cw_char('!');
 					cw_char(':');
 					cw_char(command);
 				} else {
-					if (v == 'n') {
-						restore_preset(mid);
-					} else {
-						save_preset(mid);
-					}
+					restore_preset(mid);
 					next_action = 2;
 					msg[0] = '='; msg[1] = '=';
 					msg[2] = ' '; msg[3] = command;
@@ -725,6 +720,7 @@ void command_mode_cb(uint8_t v) {
 			} else {
 				cm_state = command_done;
 			}
+			break;
 		case 's':
 			if (next_action == 0) {
 				next_action = 1;
