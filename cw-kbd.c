@@ -124,7 +124,7 @@ void EVENT_USB_Device_Connect(void)
 void EVENT_USB_Device_Disconnect(void)
 {
 	ulog("USB OFF\r");
-	ms_tick_register(NULL, TICK_USB_WORK, 0);
+	ms_tick_unregister(TICK_USB_WORK);
 }
 
 /* Event handler for the library USB Configuration Changed event. */
@@ -412,7 +412,7 @@ static void set_memory_repeat(uint8_t mid, uint8_t freq) {
 	} else {
 		string_inject_count--;
 		if (!string_inject_count)
-			ms_tick_register(NULL, TICK_INJECT_STR, 0);
+			ms_tick_unregister(TICK_INJECT_STR);
 	}
 }
 
@@ -863,7 +863,7 @@ void command_mode_cb(uint8_t v) {
 
 void int6_enable(void) {
 	/* disable debounce timer and enable interrupt */
-	ms_tick_register(NULL, TICK_DEBOUNCE_INT6, 0);
+	ms_tick_unregister(TICK_DEBOUNCE_INT6);
 	DDRE &= ~_BV(PE6);
 	EICRB &= ~(_BV(ISC60) | _BV(ISC61));
 	EIFR = _BV(INTF6);
@@ -883,8 +883,8 @@ void set_command_mode(bool mode) {
 	} else {
 		cw_set_word_space(true);
 		cw_enable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
-		ms_tick_register(NULL, TICK_TOGGLE_BIT, 0);
-		ms_tick_register(NULL, TICK_FAUX_WDT, 0);
+		ms_tick_unregister(TICK_TOGGLE_BIT);
+		ms_tick_unregister(TICK_FAUX_WDT);
 		set_toggle_bit();
 		cw_set_dq_callback(hid_nq);
 	}
@@ -893,11 +893,11 @@ void set_command_mode(bool mode) {
 
 static void exit_command_mode(void) {
 	set_command_mode(false);
-	ms_tick_register(NULL, TICK_FAUX_WDT, 0);
+	ms_tick_unregister(TICK_FAUX_WDT);
 }
 
 static void reset_button_pressed(void) {
-	ms_tick_register(NULL, TICK_RESET_BUTTON, 0);
+	ms_tick_unregister(TICK_RESET_BUTTON);
 	debug("PINE = %u\r\n", PINE);
 	if ((PINE & _BV(PE6)) == 0) {
 		debug("resetting eeprom defaults\r\n");

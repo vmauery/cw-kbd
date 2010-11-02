@@ -50,6 +50,7 @@ enum tick_events {
 int16_t delta_millis(uint16_t latter, uint16_t former);
 uint8_t ms_tick_registered(enum tick_events prio);
 void ms_tick_register(tick_callback_t work, enum tick_events prio, uint16_t freq);
+void ms_tick_unregister(enum tick_events prio);
 void ms_tick_init(void);
 void ms_tick_start(void);
 void ms_tick_stop(void);

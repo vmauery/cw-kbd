@@ -62,15 +62,17 @@ void ms_tick_register(tick_callback_t work, enum tick_events prio, uint16_t freq
 	tick_q[prio].freq = freq;
 	tick_q[prio].next_fire = millis + freq;
 	tick_q[prio].func = work;
-	if (work) {
-		if (!waiting_events)
-			ms_tick_start();
-		waiting_events |= _BV(prio);
-	} else {
-		waiting_events &= ~_BV(prio);
-		if (!waiting_events) {
-			ms_tick_stop();
-		}
+	if (!waiting_events)
+		ms_tick_start();
+	waiting_events |= _BV(prio);
+}
+
+void ms_tick_unregister(enum tick_events prio) {
+	ulog("ms_tick_unregister(%u): %b\r", prio, waiting_events);
+	tick_q[prio].func = NULL;
+	waiting_events &= ~_BV(prio);
+	if (!waiting_events) {
+		ms_tick_stop();
 	}
 }
 
