@@ -959,11 +959,17 @@ ISR(INT6_vect) {
 	ms_tick_register(int6_debounce, TICK_INT6_DEBOUNCE, 1);
 }
 
+/* if you wire together PD4 and reset, you can do a HARD reset */
+/* #define HARD_RESET */
 __attribute__((naked)) void soft_reset(void) {
 	uint8_t mcucr;
 	USB_ShutDown();
 	while (USB_IsInitialized);
 	cli();
+#ifdef HARD_RESET
+	PORTD &= _BV(PD4);
+	while(1);
+#else /* !HARD_RESET */
 	mcucr = MCUCR | _BV(IVCE) | _BV(IVSEL);
 	MCUCR |= _BV(IVCE);
 	MCUCR = mcucr;
@@ -972,6 +978,7 @@ __attribute__((naked)) void soft_reset(void) {
 	clear_led();
 	ms_tick_stop();
 	asm volatile ("jmp %0" : : "i"(BOOT_START_ADDR));
+#endif /* HARD_RESET */
 }
 
 void sw_init(void) {
@@ -997,6 +1004,11 @@ void hw_init(void)
 	clock_prescale_set(clock_div_1);
 
 	sei();
+
+#ifdef HARD_RESET
+	PORTD |= _BV(PD4);
+	DDRD |= _BV(PD4);
+#endif /* HARD_RESET */
 
 	/* Hardware Initialization */
 	USB_Init();
