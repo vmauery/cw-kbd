@@ -1053,3 +1053,9 @@ void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
 	EIMSK |= (_BV(INT1) | _BV(INT0));
 }
 
+void cw_fini(void) {
+	EIMSK &= ~(_BV(INT1) | _BV(INT0));
+	cw_set_dq_callback(NULL);
+	cw_clear_queues();
+	timer3_stop();
+}

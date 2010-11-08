@@ -63,6 +63,11 @@ BOARD =
 #     software delays.
 F_CPU = 16000000
 
+# Boot start address
+#     We need to know the boot start address so we can jump to it on a soft
+#     reset.  This is so we don't have to physically press the reset button
+#     in order to run the bootloader to flash new firmware.
+BOOT_START = 0x7c00
 
 # Input clock frequency.
 #     This will define a symbol, F_CLOCK, in all source code files equal to the 
@@ -181,6 +186,7 @@ CDEFS  = -DF_CPU=$(F_CPU)UL
 CDEFS += -DF_CLOCK=$(F_CLOCK)UL
 CDEFS += -DBOARD=BOARD_$(BOARD)
 CDEFS += $(LUFA_OPTS)
+CDEFS += -DBOOT_START_ADDR=$(BOOT_START)UL
 
 
 # Place -D or -U options here for ASM sources
@@ -188,12 +194,14 @@ ADEFS  = -DF_CPU=$(F_CPU)
 ADEFS += -DF_CLOCK=$(F_CLOCK)UL
 ADEFS += -DBOARD=BOARD_$(BOARD)
 ADEFS += $(LUFA_OPTS)
+ADEFS += -DBOOT_START_ADDR=$(BOOT_START)UL
 
 # Place -D or -U options here for C++ sources
 CPPDEFS  = -DF_CPU=$(F_CPU)UL
 CPPDEFS += -DF_CLOCK=$(F_CLOCK)UL
 CPPDEFS += -DBOARD=BOARD_$(BOARD)
 CPPDEFS += $(LUFA_OPTS)
+CPPDEFS += -DBOOT_START_ADDR=$(BOOT_START)UL
 #CPPDEFS += -D__STDC_LIMIT_MACROS
 #CPPDEFS += -D__STDC_CONSTANT_MACROS
 

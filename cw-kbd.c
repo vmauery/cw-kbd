@@ -36,6 +36,7 @@
 static void hid_nq(uint8_t c);
 void set_command_mode(bool mode);
 static void exit_command_mode(void);
+void soft_reset(void);
 
 uint8_t hid_in_report_buffer[sizeof(USB_KeyboardReport_Data_t)];
 
@@ -447,6 +448,10 @@ static void inject_string(void) {
 	}
 }
 
+static void clear_led(void) {
+	PORTD &= ~_BV(PD6);
+}
+
 static void set_led(void) {
 	PORTD |= _BV(PD6);
 }
@@ -555,6 +560,9 @@ void command_mode_cb(uint8_t v) {
 			cmd_bytes = 2;
 			cw_char(':');
 			cw_char(v);
+			break;
+		case 'o': /* jump to reset */
+			soft_reset();
 			break;
 		case 'q': /* quiet mode */
 			cw_set_beeper(!settings_get_beeper());
@@ -874,6 +882,10 @@ void int6_enable(void) {
 	EIMSK |= _BV(INT6);
 }
 
+static void int6_disable(void) {
+	EIMSK &= ~_BV(INT6);
+}
+
 bool command_mode = false;
 void set_command_mode(bool mode) {
 	command_mode = mode;
@@ -932,9 +944,24 @@ void int6_debounce(void) {
 
 /* command mode button */
 ISR(INT6_vect) {
-	EIMSK &= ~_BV(INT6);
+	int6_disable();
 	debug("INT6\n");
 	ms_tick_register(int6_debounce, TICK_INT6_DEBOUNCE, 1);
+}
+
+__attribute__((naked)) void soft_reset(void) {
+	uint8_t mcucr;
+	USB_ShutDown();
+	while (USB_IsInitialized);
+	cli();
+	mcucr = MCUCR | _BV(IVCE) | _BV(IVSEL);
+	MCUCR |= _BV(IVCE);
+	MCUCR = mcucr;
+	cw_fini();
+	int6_disable();
+	clear_led();
+	ms_tick_stop();
+	asm volatile ("jmp %0" : : "i"(BOOT_START_ADDR));
 }
 
 void sw_init(void) {

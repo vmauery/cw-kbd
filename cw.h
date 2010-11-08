@@ -85,6 +85,7 @@ didah_queue_t cw_get_left_key(void);
 void cw_init(uint8_t wpm, cw_dq_cb_t cb);
 void cw_set_word_space(bool spaces);
 void cw_set_frequency(uint16_t hz);
+void cw_fini(void);
 void cw_set_keying_mode(keying_mode_t mode);
 void cw_set_dq_callback(cw_dq_cb_t cb);
 void cw_enable_outputs(uint8_t enable_what);
