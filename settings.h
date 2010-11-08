@@ -33,7 +33,7 @@
 	uint8_t wpm; \
 	keying_mode_t keying_mode; \
 	didah_queue_t left_key; \
-	uint16_t frequency; \
+	uint8_t frequency; \
 	bool beeper; \
 	bool autospace;
 
@@ -62,8 +62,8 @@ uint8_t settings_get_wpm(void);
 void settings_set_wpm(uint8_t wpm);
 uint8_t settings_get_keying_mode(void);
 void settings_set_keying_mode(keying_mode_t mode);
-uint16_t settings_get_frequency(void);
-void settings_set_frequency(uint16_t freq);
+uint8_t settings_get_frequency(void);
+void settings_set_frequency(uint8_t freq);
 didah_queue_t settings_get_left_key(void);
 void settings_set_left_key(didah_queue_t didah);
 void settings_get_memory(uint8_t id, uint8_t *msg);

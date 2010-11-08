@@ -889,24 +889,24 @@ void cw_set_word_space(bool spaces, bool save) {
 	word_space = spaces;
 }
 
-void cw_set_frequency(uint16_t hz) {
+void cw_set_frequency(uint8_t hz) {
 	uint16_t top;
 	uint32_t tmp;
 
 	debug("cw_set_frequency(%u)\r\n", hz);
-	if (hz < 80 || hz > 8000) {
+	if (hz < 8) {
 		debug("hz out of range\r\n");
-		hz = 220;
+		hz = 22;
 	}
 
 	settings_set_frequency(hz);
-	tmp = F_CPU / hz / 2 - 1;
+	tmp = (F_CPU/10) / hz / 2 - 1;
 
 	if (tmp <= 0xffff) {
 		top = (uint16_t)tmp;
 		beeper_clock = t16_no_prescaling;
 	} else {
-		top = F_CPU / hz / 2 / 64 - 1;
+		top = (F_CPU/10) / hz / 2 / 64 - 1;
 		beeper_clock = t16_divide_by_64;
 	}
 	// we turn the beeper on independently with beeper_on

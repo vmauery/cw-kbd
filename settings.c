@@ -33,7 +33,7 @@ PROGMEM struct default_preset default_settings = {
 	.wpm = 20,
 	.keying_mode = keying_mode_bug,
 	.left_key = DIT,
-	.frequency = 220,
+	.frequency = 22,
 	.beeper = true,
 };
 static uint8_t cp;
@@ -95,12 +95,12 @@ void settings_set_keying_mode(keying_mode_t mode) {
 	eeprom_update_byte((uint8_t *)&settings.presets[cp].keying_mode, (uint8_t)mode);
 }
 
-uint16_t settings_get_frequency(void) {
-	return eeprom_read_word(&settings.presets[cp].frequency);
+uint8_t settings_get_frequency(void) {
+	return eeprom_read_byte(&settings.presets[cp].frequency);
 }
 
-void settings_set_frequency(uint16_t freq) {
-	eeprom_update_word(&settings.presets[cp].frequency, freq);
+void settings_set_frequency(uint8_t freq) {
+	eeprom_update_byte(&settings.presets[cp].frequency, freq);
 }
 
 didah_queue_t settings_get_left_key(void) {
@@ -155,7 +155,6 @@ void restore_preset(uint8_t pid) {
 	cw_set_speed(settings_get_wpm());
 	cw_set_keying_mode(settings_get_keying_mode());
 	cw_set_left_key(settings_get_left_key());
-	cw_set_frequency(settings_get_frequency());
 	cw_set_beeper(settings_get_beeper());
 	cw_set_word_space(settings_get_autospace(), true);
 }
@@ -178,7 +177,7 @@ void settings_dump(void) {
 		_delay_ms(1);
 		ulog("  left key: %u\r", eeprom_read_byte(&settings.presets[i].left_key));
 		_delay_ms(1);
-		ulog("  freq: %u\r", eeprom_read_word(&settings.presets[i].frequency));
+		ulog("  freq: %u\r", eeprom_read_byte(&settings.presets[i].frequency));
 		_delay_ms(1);
 		ulog("  beeper: %u\r", eeprom_read_byte((uint8_t*)&settings.presets[i].beeper));
 		_delay_ms(1);

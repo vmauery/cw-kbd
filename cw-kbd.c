@@ -777,17 +777,17 @@ void command_mode_cb(uint8_t v) {
 		case 't':
 			if (next_action == 0) {
 				next_action = 1;
-				cmd_bytes = 3;
+				cmd_bytes = 2;
 				cm_state  = command_input;
 			} else if (next_action == 1) {
-				uint16_t tone = atoi((char*)msg);
-				if (tone > 80 && tone < 1000) {
+				uint8_t tone = atoi((char*)msg);
+				if (tone > 8) {
 					next_action = 2;
 					cw_set_frequency(tone);
-					msg[3] = msg[0]; msg[4] = msg[1]; msg[5] = msg[2];
+					msg[3] = msg[0]; msg[4] = msg[1];
 					msg[0] = '='; msg[1] = '='; msg[2] = ' ';
-					msg[6] = 0;
-					cmd_bytes = 6;
+					msg[5] = 0;
+					cmd_bytes = 5;
 					cw_string((char*)msg);
 				} else {
 					next_action = 0;
