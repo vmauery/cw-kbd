@@ -971,7 +971,6 @@ void hw_init(void)
 
 	ms_tick_start();
 	cw_init(settings_get_wpm(), (cw_dq_cb_t)&hid_nq);
-	cw_set_frequency(settings_get_frequency());
 
 	/* enable blinky led */
 	DDRD |= _BV(PD6);

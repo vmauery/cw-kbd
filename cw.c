@@ -1031,17 +1031,16 @@ void cw_set_beeper(bool beep) {
 		timer3_set_interrupts(T16_NO_INT);
 		cw_disable_outputs(CW_ENABLE_BEEPER);
 	}
+	cw_set_frequency(settings_get_frequency());
 }
 
 /* this sets up timer1 for asynchronous CW output */
 void cw_init(uint8_t wpm, cw_dq_cb_t cb) {
-	keying_mode = settings_get_keying_mode();
-	cw_set_left_key(settings_get_left_key());
-	word_space = true;
-	cw_set_dq_callback(cb);
-	cw_set_speed(wpm);
 	timer3_set_compare_a_callback(&toggle_bit);
-	cw_set_beeper(settings_get_beeper());
+	cw_set_dq_callback(cb);
+
+	/* load all the settings */
+	restore_preset(settings_get_preset());
 
 	/* setup the output pins/ports */
 	cw_enable_outputs(CW_ENABLE_ALL);

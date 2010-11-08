@@ -148,6 +148,7 @@ void restore_preset(uint8_t pid) {
 	cw_set_keying_mode(settings_get_keying_mode());
 	cw_set_left_key(settings_get_left_key());
 	cw_set_frequency(settings_get_frequency());
+	cw_set_beeper(settings_get_beeper());
 }
 
 #ifdef DEBUG
