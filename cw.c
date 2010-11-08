@@ -883,7 +883,9 @@ static void beeper_off(void) {
 	BEEPER_PORT &= ~BEEPER_BIT;
 }
 
-void cw_set_word_space(bool spaces) {
+void cw_set_word_space(bool spaces, bool save) {
+	if (save)
+		settings_set_autospace(spaces);
 	word_space = spaces;
 }
 

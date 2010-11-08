@@ -135,6 +135,14 @@ void settings_set_beeper(bool beep) {
 	eeprom_update_byte((uint8_t*)&settings.presets[cp].beeper, (uint8_t)beep);
 }
 
+bool settings_get_autospace(void) {
+	return (bool)eeprom_read_byte((uint8_t*)&settings.presets[cp].autospace);
+}
+
+void settings_set_autospace(bool autospace) {
+	eeprom_update_byte((uint8_t*)&settings.presets[cp].autospace, (uint8_t)autospace);
+}
+
 uint8_t settings_get_preset(void) {
 	return eeprom_read_byte(&settings.current_preset);
 }
@@ -149,6 +157,7 @@ void restore_preset(uint8_t pid) {
 	cw_set_left_key(settings_get_left_key());
 	cw_set_frequency(settings_get_frequency());
 	cw_set_beeper(settings_get_beeper());
+	cw_set_word_space(settings_get_autospace(), true);
 }
 
 #ifdef DEBUG

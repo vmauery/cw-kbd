@@ -561,6 +561,13 @@ void command_mode_cb(uint8_t v) {
 			cw_char(':');
 			cw_char(v);
 			break;
+		case 'a': /* autospace */
+			cw_set_word_space(!settings_get_autospace(), true);
+			cw_set_word_space(false, false);
+			cm_state = command_output;
+			cmd_bytes = 1;
+			cw_char('+');
+			break;
 		case 'o': /* jump to reset */
 			soft_reset();
 			break;
@@ -639,6 +646,9 @@ void command_mode_cb(uint8_t v) {
 		 */
 		cm_state = command_output;
 		switch (command) {
+		case 'a':
+			cm_state = command_done;
+			break;
 		case 'd':
 			if (next_action == 0) {
 				next_action = 1;
@@ -890,14 +900,14 @@ bool command_mode = false;
 void set_command_mode(bool mode) {
 	command_mode = mode;
 	if (command_mode) {
-		cw_set_word_space(false);
+		cw_set_word_space(false, false);
 		cw_disable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_register(toggle_led, TICK_TOGGLE_LED, 250);
 		ms_tick_register(exit_command_mode, TICK_FAUX_WDT, 30000);
 		command_mode_cb(0);
 		cw_set_dq_callback(command_mode_cb);
 	} else {
-		cw_set_word_space(true);
+		cw_set_word_space(settings_get_autospace(), false);
 		cw_enable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
 		ms_tick_unregister(TICK_TOGGLE_LED);
 		ms_tick_unregister(TICK_FAUX_WDT);

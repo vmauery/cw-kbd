@@ -34,7 +34,8 @@
 	keying_mode_t keying_mode; \
 	didah_queue_t left_key; \
 	uint16_t frequency; \
-	bool beeper;
+	bool beeper; \
+	bool autospace;
 
 struct preset {
 	SETTINGS_ITEMS
@@ -69,6 +70,8 @@ void settings_get_memory(uint8_t id, uint8_t *msg);
 void settings_set_memory(uint8_t id, const uint8_t *msg);
 uint8_t settings_get_memory_repeat(uint8_t id);
 void settings_set_memory_repeat(uint8_t id, const uint8_t freq);
+bool settings_get_autospace(void);
+void settings_set_autospace(bool autospace);
 bool settings_get_beeper(void);
 void settings_set_beeper(bool beep);
 uint8_t settings_get_preset(void);
