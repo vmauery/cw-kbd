@@ -447,11 +447,11 @@ static void inject_string(void) {
 	}
 }
 
-static void set_toggle_bit(void) {
+static void set_led(void) {
 	PORTD |= _BV(PD6);
 }
 
-static void toggle_bit(void) {
+static void toggle_led(void) {
 	PORTD ^= _BV(PD6);
 }
 
@@ -880,16 +880,16 @@ void set_command_mode(bool mode) {
 	if (command_mode) {
 		cw_set_word_space(false);
 		cw_disable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
-		ms_tick_register(toggle_bit, TICK_TOGGLE_BIT, 250);
+		ms_tick_register(toggle_led, TICK_TOGGLE_LED, 250);
 		ms_tick_register(exit_command_mode, TICK_FAUX_WDT, 30000);
 		command_mode_cb(0);
 		cw_set_dq_callback(command_mode_cb);
 	} else {
 		cw_set_word_space(true);
 		cw_enable_outputs(CW_ENABLE_KEYER|CW_ENABLE_DIDAH);
-		ms_tick_unregister(TICK_TOGGLE_BIT);
+		ms_tick_unregister(TICK_TOGGLE_LED);
 		ms_tick_unregister(TICK_FAUX_WDT);
-		set_toggle_bit();
+		set_led();
 		cw_set_dq_callback(hid_nq);
 	}
 	cw_clear_queues();
@@ -974,7 +974,7 @@ void hw_init(void)
 
 	/* enable blinky led */
 	DDRD |= _BV(PD6);
-	set_toggle_bit();
+	set_led();
 
 	/* initialize the command mode button */
 	int6_enable();
