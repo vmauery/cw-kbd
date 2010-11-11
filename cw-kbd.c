@@ -729,7 +729,11 @@ void command_mode_cb(uint8_t v) {
 			} else if (next_action == 1) {
 				idx = 0;
 				mid = msg[0] - '0';
-				if (mid > 9) {
+				if (mid == ('?' - '0')) {
+					cmd_bytes = 1;
+					next_action = 2;
+					cw_char(settings_get_preset() + '0');
+				} else if (mid > 9) {
 					next_action = 0;
 					cw_char('!');
 					cw_char(':');
