@@ -580,7 +580,7 @@ void command_mode_cb(uint8_t v) {
 			cmd_bytes = 1;
 			cw_char('+');
 			break;
-		case 'o': /* jump to reset */
+		case ':': /* jump to reset */
 			soft_reset();
 			break;
 		case 'q': /* quiet mode */
