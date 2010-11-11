@@ -37,6 +37,7 @@ static void hid_nq(uint8_t c);
 void set_command_mode(bool mode);
 static void exit_command_mode(void);
 void soft_reset(void);
+bool command_mode = false;
 
 uint8_t hid_in_report_buffer[sizeof(USB_KeyboardReport_Data_t)];
 
@@ -413,17 +414,23 @@ static void inject_string(void);
 
 static void set_memory_repeat(uint8_t mid, uint8_t freq) {
 	settings_set_memory_repeat(mid, freq);
+	if (freq) {
+		debug("adding inject %u @ %u (%u total)\n", mid, freq, string_inject_count);
+		if (!string_inject_count) {
+			debug("ms_tick_register(TICK_INJECT_STR)\n");
+			ms_tick_register(inject_string, TICK_INJECT_STR, 60000);
+		}
+		if (!repeat_q[mid].next)
+			string_inject_count++;
+	} else if (repeat_q[mid].freq) {
+		string_inject_count--;
+		if (!string_inject_count) {
+			debug("ms_tick_unregister(TICK_INJECT_STR)\n");
+			ms_tick_unregister(TICK_INJECT_STR);
+		}
+	}
 	repeat_q[mid].freq = freq;
 	repeat_q[mid].next = this_minute + freq;
-	if (freq) {
-		if (!string_inject_count)
-			ms_tick_register(inject_string, TICK_INJECT_STR, 60000);
-		string_inject_count++;
-	} else {
-		string_inject_count--;
-		if (!string_inject_count)
-			ms_tick_unregister(TICK_INJECT_STR);
-	}
 }
 
 static void inject_string_init(void) {
@@ -438,11 +445,16 @@ static void inject_string(void) {
 	uint8_t i;
 	uint8_t msg[65];
 
+	if (command_mode)
+		return;
 	this_minute++;
+	debug("inject_string: this_minute=%u\n", this_minute);
 	for (i=0; i<MEMORY_COUNT; i++) {
+		debug("%i: freq=%u, next=%u\n", i, repeat_q[i].freq, repeat_q[i].next);
 		if (repeat_q[i].freq && repeat_q[i].next == this_minute) {
 			repeat_q[i].next += repeat_q[i].freq;
 			settings_get_memory(i, msg);
+			debug("cw_string(%s)\n", msg);
 			cw_string((char*)msg);
 		}
 	}
@@ -900,7 +912,6 @@ static void int6_disable(void) {
 	EIMSK &= ~_BV(INT6);
 }
 
-bool command_mode = false;
 void set_command_mode(bool mode) {
 	command_mode = mode;
 	if (command_mode) {
