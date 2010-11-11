@@ -966,17 +966,18 @@ ISR(INT6_vect) {
 /* if you wire together PD4 and reset, you can do a HARD reset */
 /* #define HARD_RESET */
 __attribute__((naked)) void soft_reset(void) {
-	uint8_t mcucr;
 	USB_ShutDown();
 	while (USB_IsInitialized);
 	cli();
-#ifdef HARD_RESET
-	PORTD &= _BV(PD4);
-	while(1);
-#else /* !HARD_RESET */
+	uint8_t mcucr;
 	mcucr = MCUCR | _BV(IVCE) | _BV(IVSEL);
 	MCUCR |= _BV(IVCE);
 	MCUCR = mcucr;
+#ifdef HARD_RESET
+	clear_led();
+	PORTD &= _BV(PD4);
+	while(1);
+#else /* !HARD_RESET */
 	cw_fini();
 	int6_disable();
 	clear_led();
